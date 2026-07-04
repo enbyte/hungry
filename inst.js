@@ -7,6 +7,7 @@ class Inst {
 
     constructor() {
         this.id = Inst.getId();
+        this.operands = [];
     }
 
     toString() {
@@ -18,9 +19,10 @@ class BinaryInst extends Inst {
     constructor(op, left, right) {
         super();
         this.op = op;
-        this.left = left;
-        this.right = right;
+        this.operands = [left, right];
     }
+    get left() { return this.operands[0] }
+    get right() { return this.operands[1] }
 
     toString() {
         return `${this.id} = ${this.op}(${this.left.id}, ${this.right.id})`
@@ -41,12 +43,13 @@ class ConstInst extends Inst {
 class AssignmentInst extends Inst {
     constructor(iden, init) {
         super();
-        this.iden = iden;
+        this.iden = iden; // iden = str
         this.init = init;
+        this.operands = [init];
     }
 
     toString() {
-        return `${this.id} = Assign(${this.iden.id} -> ${this.init.id})`
+        return `${this.id} = Assign(${this.iden} <- ${this.init.id})`
     }
 }
 
@@ -62,14 +65,16 @@ class IdentifierRefInst extends Inst {
 }
 
 class CondJumpInst extends Inst {
-    constructor(cond, target) {
+    constructor(cond, target, alternate) {
         super();
         this.cond = cond;
-        this.target_block = target;
+        this.target = target;
+        this.alternate = alternate;
+        this.operands = [cond];
     }
 
     toString() {
-        return `${this.id} = JumpIf ${this.cond.id} -> ${this.target_block.id}`
+        return `${this.id} = JumpIf ${this.cond.id} -> ${this.target.id} else ${this.alternate.id}`
     }
 }
 
@@ -84,7 +89,37 @@ class JumpInst extends Inst {
     }
 }
 
+class PhiInst extends Inst {
+    constructor(vari) {
+        super();
+        this.vari = vari;
+    }
+
+    toString() {
+        return `${this.id} = Phi(^${this.vari})`
+    }
+}
+
+class UpsilonInst extends Inst {
+    constructor(val, target) {
+        super();
+        this.val = val;
+        this.target = target;
+    }
+
+    toString() {
+        return `${this.id} = Upsilon(${this.val.id}, ^${this.target.id})`
+    }
+}
+
+class UndefinedConstInst extends Inst {
+    toString() {
+        return `${this.id} = Undefined()`;
+    }
+}
+
 module.exports = {
-    BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst,
-    CondJumpInst, JumpInst
+    BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
+    CondJumpInst, JumpInst,
+    PhiInst, UpsilonInst,
 }
