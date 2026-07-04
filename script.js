@@ -1,5 +1,7 @@
-let y = 1;
-if (5 > 3) {
-  y = 2;
+let x = 0;
+let counter = 0;
+while (x < 5) {
+    x = x + 1;
+    counter = counter + x;
 }
-y = 4;
+counter + 0;
