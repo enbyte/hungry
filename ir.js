@@ -95,7 +95,6 @@ class IR {
 
                 this.blocks.push(body, post);
                 this.block.addChildren(body, post);
-                body.addChild(post);
 
                 let cond = this.lowerStatement(expr.test);
                 this.block.insts.push(new CondJumpInst(cond, body, post));
@@ -103,6 +102,7 @@ class IR {
                 this.lower(expr.consequent.body);
 
                 this.block.insts.push(new JumpInst(post));
+                this.block.addChild(post);
                 this.block = post;
             } else if (t.isWhileStatement(expr)) {
                 let cond = new Block();
@@ -112,7 +112,6 @@ class IR {
 
                 this.block.addChild(cond);
                 cond.addChildren(body, post);
-                body.addChildren(cond);
 
                 this.block.insts.push(new JumpInst(cond));
                 this.block = cond;
@@ -122,6 +121,7 @@ class IR {
                 this.block = body;
                 this.lower(expr.body.body);
                 this.block.insts.push(new JumpInst(cond));
+                this.block.addChild(cond);
 
                 this.block = post;
             } else {
@@ -226,7 +226,9 @@ class IR {
         for (let block of this.blocks) {
             for (let inst of block.insts) {
                 if (inst instanceof AssignmentInst) {
-                    if (defs.has(inst.iden) && !defs.get(inst.iden).includes(block)) {
+                    if (!defs.has(inst.iden)) {
+                        defs.set(inst.iden, [block]);
+                    } else if (!defs.get(inst.iden).includes(block)) {
                         defs.get(inst.iden).push(block);
                     } else {
                         defs.set(inst.iden, [block]);

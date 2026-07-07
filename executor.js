@@ -56,6 +56,7 @@ function execute(src, const_pool) {
     }
     console.log('Last mem slot', slots.at(-1));
     console.log('mem', slots);
+    console.log('stack', stack);
 }
 
 module.exports = { OPCODES, execute };

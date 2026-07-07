@@ -10,7 +10,6 @@ const src = readFileSync(FILE, {encoding: 'utf8'});
 const ir = new IR(src);
 
 console.log(src);
-console.log(ir.toString());
 let [bc, pool] = compile(ir);
 console.log('Executing...');
 execute(bc, pool);
