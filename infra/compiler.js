@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -52,6 +52,8 @@ function calculateSlots(ir) {
                     break;
                 case i instanceof JumpInst:
                     break;
+                case i instanceof RetInst:
+                    break;
                 default:
                     throw new Error(`I can't calculateSlots for a ${i}!`)
             }
@@ -59,12 +61,24 @@ function calculateSlots(ir) {
     }
 }
 
-function compile(ir) {
+function calculateSlotsNoOpti(ir) {
+    let slot = 0;
+    function getSlot(inst) {
+        if (inst.slot == null) {
+            inst.slot = slot++;
+        }
+        return inst.slot;
+    }
+
+    
+}
+
+function compile(ir, passes) {
     let bytecode = [];
     let pool = [];
 
     calculateSlots(ir);
-    console.log(ir.toString());
+    // console.log(ir.toString());
 
     let defSites = new Set();
     for (let b of ir.blocks) {
@@ -129,6 +143,9 @@ function compile(ir) {
                     bytecode.push(OPCODES.JUMP);
                     bytecode.push(i.target_block.id);
                     break;
+                case i instanceof RetInst:
+                    bytecode.push(OPCODES.RET);
+                    break;
                 default:
                     throw new Error(`Unimplemented inst compile ${i}`);
             }
@@ -139,6 +156,11 @@ function compile(ir) {
             bytecode[i] = blockLocs[bytecode[i]]
         }
     }
+
+    for (let pass of passes) {
+        let [ir, bytecode, pool] = pass.transform(ir, bytecode, pool);
+    }
+
     return [bytecode, pool];
 }
 

@@ -23,7 +23,8 @@ function execute(src, const_pool) {
                 push(pop() + pop());
                 break;
             case OPCODES.RET:
-                return;
+                // console.log('return, stack=', stack, 'mem=', slots);
+                return stack;
             case OPCODES.LOAD_CONST:
                 push(const_pool[src[pc++]]);
                 break;
@@ -54,9 +55,7 @@ function execute(src, const_pool) {
                 throw new Error(`Unknown opcode ${op} at pc=${pc - 1}`);
         }
     }
-    console.log('Last mem slot', slots.at(-1));
-    console.log('mem', slots);
-    console.log('stack', stack);
+    return stack;
 }
 
 module.exports = { OPCODES, execute };
