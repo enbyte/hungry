@@ -1,16 +1,16 @@
 {
-  "name": "2bfuscator",
-  "version": "1.0.0",
-  "main": "ir.js",
+  "name": "hungry-ir",
+  "version": "0.0.0",
+  "main": "tests/test.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/run_all_tests.js"
+    "test": "node tests/test.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "AGPL",
   "description": "",
   "dependencies": {
     "@babel/parser": "^7.29.3"
