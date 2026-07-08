@@ -1,7 +1,7 @@
 const { parse } = require("@babel/parser");
 const t = require("@babel/types");
 const { Block } = require("./block.js")
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, RetInst } = require("./inst.js")
 
 function reversePostOrder(entry) {
     let visited = new Set();
@@ -30,7 +30,7 @@ function reversePostOrder(entry) {
     return [po, po_index];
 }
 class IR {
-    constructor(src) {
+    constructor(src, passes) {
         this.src = src;
         this.ast = parse(src).program.body;
 
@@ -39,13 +39,18 @@ class IR {
         this.blocks = [this.entry];
         this.block = this.entry;
 
-        console.log(`Entry id is ${this.entry.id}`);
+        // console.log(`Entry id is ${this.entry.id}`);
 
         this.lower();
         this.computeDominance();
         this.placePhis();
         this.rename();
         this.nukeVestigialAssignmentsSoMuchExtraSlopGrrr();
+        this.addRet();
+
+        for (let pass of passes) {
+            pass.transform(this.ir)
+        }
     }
 
     getBlock(id) {
@@ -126,6 +131,14 @@ class IR {
                 this.block = post;
             } else {
                 throw new Error(`Unimplemented top-level expression type ${expr.type}`);
+            }
+        }
+    }
+
+    addRet() {
+        for (let b of this.blocks) {
+            if (b.children.length == 0) {
+                b.insts.push(new RetInst());
             }
         }
     }
@@ -230,8 +243,6 @@ class IR {
                         defs.set(inst.iden, [block]);
                     } else if (!defs.get(inst.iden).includes(block)) {
                         defs.get(inst.iden).push(block);
-                    } else {
-                        defs.set(inst.iden, [block]);
                     }
                 }
             }

@@ -38,4 +38,4 @@ while (x < 6) {
     x = z;
 }
 
-total + x;
+total + x; // 74

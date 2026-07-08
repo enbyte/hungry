@@ -122,8 +122,14 @@ class UndefinedConstInst extends Inst {
     }
 }
 
+class RetInst extends Inst {
+    toString() {
+        return `${this.id} = Return`
+    }
+}
+
 module.exports = {
     BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
-    CondJumpInst, JumpInst,
+    CondJumpInst, JumpInst, RetInst,
     PhiInst, UpsilonInst,
 }
