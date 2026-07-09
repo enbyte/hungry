@@ -44,11 +44,9 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 | Feature | Is supported |
 |---------|--------------|
 | literals | ✅          |
-| while statement | ✅ |
-| if statement | ✅ |
+| while, if/else if/else, for loops | ✅ |
 | binary, unary, and update operations | ✅ |
 | variables (no scoping) | ✅ |
-| other control flow, including else if and else | ❌ |
 | objects | ❌ |
 | calling functions | ❌ |
 | literally anything else | ❌ |
