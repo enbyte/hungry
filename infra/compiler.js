@@ -162,63 +162,115 @@ function compile(ir, passes) {
     let slot = 1;
     
 
+    let maxSlot = -1;
+    for (let b of ir.blocks) {
+        for (let i of b.insts) {
+            if (i.slot != null) maxSlot = Math.max(maxSlot, i.slot);
+            if (i instanceof UpsilonInst) {
+                if (i.val && i.val.slot != null) maxSlot = Math.max(maxSlot, i.val.slot);
+                if (i.target && i.target.slot != null) maxSlot = Math.max(maxSlot, i.target.slot);
+            }
+            for (let op of i.operands) {
+                if (op && op.slot != null) maxSlot = Math.max(maxSlot, op.slot);
+            }
+        }
+    }
+    let tempBase = maxSlot + 1;
+
     let blockLocs = {};
     for (let b of ir.blocks) {
         blockLocs[b.id] = bytecode.length;
-        for (let i of b.insts) {
-            switch (true) {
-                case i instanceof ConstInst:
-                    if (pool.includes(i.val)) {
-                        bytecode.push(OPCODES.LOAD_CONST);
-                        bytecode.push(pool.indexOf(i.val));
-                    } else {
-                        bytecode.push(OPCODES.LOAD_CONST);
-                        bytecode.push(pool.length);
-                        pool.push(i.val);
+        let insts = b.insts;
+        let idx = 0;
+        while (idx < insts.length) {
+            let i = insts[idx];
+            if (i instanceof UpsilonInst) {
+                let run = [];
+                while (idx < insts.length && insts[idx] instanceof UpsilonInst) {
+                    run.push(insts[idx]);
+                    idx++;
+                }
+
+                let writtenSlots = new Set();
+                let hasHazard = false;
+                for (let ups of run) {
+                    if (ups.val.slot !== null && writtenSlots.has(ups.val.slot)) {
+                        hasHazard = true;
                     }
-                    if (i.slot !== null) {
-                        bytecode.push(OPCODES.STORE, i.slot);
+                    writtenSlots.add(ups.target.slot);
+                }
+
+                if (!hasHazard) {
+                    for (let ups of run) {
+                        if (ups.val.slot !== null) {
+                            bytecode.push(OPCODES.LOAD, ups.val.slot);
+                        }
+                        bytecode.push(OPCODES.STORE, ups.target.slot);
                     }
-                    break;
-                case i instanceof UpsilonInst:
-                    if (i.val.slot !== null) {
-                        bytecode.push(OPCODES.LOAD, i.val.slot);
-                    };
-                    bytecode.push(OPCODES.STORE, i.target.slot);
-                    break;
-                case i instanceof PhiInst:
-                    // written by upsilons
-                    break;
-                case i instanceof BinaryInst:
-                    if (i.left.slot !== null) { bytecode.push(OPCODES.LOAD, i.left.slot); }
-                    if (i.right.slot !== null) { bytecode.push(OPCODES.LOAD, i.right.slot); }
-                    bytecode.push(getBinOpcode(i.op))
-                    if (i.slot !== null) { bytecode.push(OPCODES.STORE, i.slot) };
-                    break;
-                case i instanceof UnaryInst:
-                    if (i.obj.slot !== null) {
-                        bytecode.push(OPCODES.LOAD, i.obj.slot);
+                } else {
+                    let temps = [];
+                    for (let ups of run) {
+                        let temp = tempBase + temps.length;
+                        temps.push(temp);
+                        if (ups.val.slot !== null) {
+                            bytecode.push(OPCODES.LOAD, ups.val.slot);
+                        }
+                        bytecode.push(OPCODES.STORE, temp);
                     }
-                    bytecode.push(getUnaryOpcode(i.op));
-                    if (i.slot !== null) {
-                        bytecode.push(OPCODES.STORE, i.slot);
+                    for (let j = 0; j < run.length; j++) {
+                        bytecode.push(OPCODES.LOAD, temps[j]);
+                        bytecode.push(OPCODES.STORE, run[j].target.slot);
                     }
-                    break;
-                case i instanceof CondJumpInst:
-                    if (i.cond.slot !== null) { bytecode.push(OPCODES.LOAD, i.cond.slot); }
-                    bytecode.push(OPCODES.JUMP_IF);
-                    bytecode.push(i.target.id);
-                    bytecode.push(i.alternate.id);
-                    break;
-                case i instanceof JumpInst:
-                    bytecode.push(OPCODES.JUMP);
-                    bytecode.push(i.target_block.id);
-                    break;
-                case i instanceof RetInst:
-                    bytecode.push(OPCODES.RET);
-                    break;
-                default:
-                    throw new Error(`Unimplemented inst compile ${i}`);
+                }
+            } else {
+                switch (true) {
+                    case i instanceof ConstInst:
+                        if (pool.includes(i.val)) {
+                            bytecode.push(OPCODES.LOAD_CONST);
+                            bytecode.push(pool.indexOf(i.val));
+                        } else {
+                            bytecode.push(OPCODES.LOAD_CONST);
+                            bytecode.push(pool.length);
+                            pool.push(i.val);
+                        }
+                        if (i.slot !== null) {
+                            bytecode.push(OPCODES.STORE, i.slot);
+                        }
+                        break;
+                    case i instanceof PhiInst:
+                        break;
+                    case i instanceof BinaryInst:
+                        if (i.left.slot !== null) { bytecode.push(OPCODES.LOAD, i.left.slot); }
+                        if (i.right.slot !== null) { bytecode.push(OPCODES.LOAD, i.right.slot); }
+                        bytecode.push(getBinOpcode(i.op))
+                        if (i.slot !== null) { bytecode.push(OPCODES.STORE, i.slot) };
+                        break;
+                    case i instanceof UnaryInst:
+                        if (i.obj.slot !== null) {
+                            bytecode.push(OPCODES.LOAD, i.obj.slot);
+                        }
+                        bytecode.push(getUnaryOpcode(i.op));
+                        if (i.slot !== null) {
+                            bytecode.push(OPCODES.STORE, i.slot);
+                        }
+                        break;
+                    case i instanceof CondJumpInst:
+                        if (i.cond.slot !== null) { bytecode.push(OPCODES.LOAD, i.cond.slot); }
+                        bytecode.push(OPCODES.JUMP_IF);
+                        bytecode.push(i.target.id);
+                        bytecode.push(i.alternate.id);
+                        break;
+                    case i instanceof JumpInst:
+                        bytecode.push(OPCODES.JUMP);
+                        bytecode.push(i.target_block.id);
+                        break;
+                    case i instanceof RetInst:
+                        bytecode.push(OPCODES.RET);
+                        break;
+                    default:
+                        throw new Error(`Unimplemented inst compile ${i}`);
+                }
+                idx++;
             }
         }
     }

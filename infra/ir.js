@@ -100,6 +100,49 @@ class IR {
         }
     }
 
+    lowerIf(expr, post) {
+        let body = new Block();
+        if (post == null) {
+            post = new Block();
+            this.blocks.push(body, post);
+        } else {
+            this.blocks.push(body);
+        }
+
+        let alternate = expr.alternate;
+        let elseBlock = null;
+        if (alternate) {
+            elseBlock = new Block();
+            this.blocks.push(elseBlock);
+        }
+
+        let altTarget = elseBlock != null ? elseBlock : post;
+        this.block.addChildren(body, altTarget);
+
+        let cond = this.lowerStatement(expr.test);
+        this.block.insts.push(new CondJumpInst(cond, body, altTarget));
+
+        this.block = body;
+        let consBody = t.isBlockStatement(expr.consequent) ? expr.consequent.body : [expr.consequent];
+        this.lower(consBody);
+        this.block.insts.push(new JumpInst(post));
+        this.block.addChild(post);
+
+        if (elseBlock != null) {
+            this.block = elseBlock;
+            if (t.isIfStatement(alternate)) {
+                this.lowerIf(alternate, post);
+            } else {
+                let altBody = t.isBlockStatement(alternate) ? alternate.body : [alternate];
+                this.lower(altBody);
+                this.block.insts.push(new JumpInst(post));
+                this.block.addChild(post);
+            }
+        }
+
+        this.block = post;
+    }
+
     lower(target = this.ast) {
         for (let expr of target) { // [*Statement|VariableDeclaration, ...]
             if (t.isExpressionStatement(expr)) {
@@ -109,20 +152,7 @@ class IR {
                     this.lowerStatement(decl);
                 }
             } else if (t.isIfStatement(expr)) {
-                let body = new Block();
-                let post = new Block();
-
-                this.blocks.push(body, post);
-                this.block.addChildren(body, post);
-
-                let cond = this.lowerStatement(expr.test);
-                this.block.insts.push(new CondJumpInst(cond, body, post));
-                this.block = body;
-                this.lower(expr.consequent.body);
-
-                this.block.insts.push(new JumpInst(post));
-                this.block.addChild(post);
-                this.block = post;
+                this.lowerIf(expr, null);
             } else if (t.isWhileStatement(expr)) {
                 let cond = new Block();
                 let body = new Block();
@@ -139,6 +169,52 @@ class IR {
 
                 this.block = body;
                 this.lower(expr.body.body);
+                this.block.insts.push(new JumpInst(cond));
+                this.block.addChild(cond);
+
+                this.block = post;
+            } else if (t.isForStatement(expr)) {
+                // init runs once in the current block
+                if (expr.init) {
+                    if (t.isVariableDeclaration(expr.init)) {
+                        for (let decl of expr.init.declarations) {
+                            this.lowerStatement(decl);
+                        }
+                    } else {
+                        this.lowerStatement(expr.init);
+                    }
+                }
+
+                let cond = new Block();
+                let body = new Block();
+                let update = new Block();
+                let post = new Block();
+                this.blocks.push(cond, body, update, post);
+
+                this.block.addChild(cond);
+                this.block.insts.push(new JumpInst(cond));
+
+                this.block = cond;
+                cond.addChildren(body, post);
+                let test;
+                if (expr.test) {
+                    test = this.lowerStatement(expr.test);
+                } else {
+                    test = new ConstInst(true);
+                    this.block.insts.push(test);
+                }
+                this.block.insts.push(new CondJumpInst(test, body, post));
+
+                this.block = body;
+                let bodyBody = t.isBlockStatement(expr.body) ? expr.body.body : [expr.body];
+                this.lower(bodyBody);
+                this.block.insts.push(new JumpInst(update));
+                this.block.addChild(update);
+
+                this.block = update;
+                if (expr.update) {
+                    this.lowerStatement(expr.update);
+                }
                 this.block.insts.push(new JumpInst(cond));
                 this.block.addChild(cond);
 
