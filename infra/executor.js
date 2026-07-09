@@ -108,12 +108,6 @@ function execute(src, const_pool) {
             case OPCODES.BNOT:
                 push(~pop());
                 break;
-            case OPCODES.INC:
-                push(pop() + 1);
-                break;
-            case OPCODES.DEC:
-                push(pop() - 1);
-                break;
             case OPCODES.RET:
                 return stack;
             case OPCODES.LOAD_CONST:
