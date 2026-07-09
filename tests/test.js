@@ -19,7 +19,7 @@ function runTestCases(testArr) {
     
     for (let i of testArr) {
         let code = i[0]; let res = i[1];
-        console.log(`Testing case ${counter} (${code.slice(0, 50).replaceAll('\n', ' ')}${code.length > 50 ? '...' : ''})`);
+        console.log(`Testing case ${counter} (${code.slice(0, 50).replaceAll(/[\n\s]+/g, ' ')}${code.length > 50 ? '...' : ''})`);
         let t = test(code, res);
         if (t[0]) {
             console.log(`\t[+] Test ${counter++} passed!`);
@@ -34,7 +34,8 @@ function runTestCases(testArr) {
 let tests = [
     [read('nesting.js'), 74],
     [read('nesting2.js'), 433],
-    ['5 - 4 + 3 - 1', 3]
+    ['5 - 4 + 3 - 1', 3],
+    [read('update_expression.js'), 5]
 ]
 
 runTestCases(tests);
