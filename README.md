@@ -46,7 +46,7 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 | literals | ✅          |
 | while statement | ✅ |
 | if statement | ✅ |
-| binary operations plus, less than, and equal to | ✅ |
+| binary operations | ✅ |
 | variables (no scoping) | ✅ |
 | other control flow, including else if and else | ❌ |
 | objects | ❌ |
