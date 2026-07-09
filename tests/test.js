@@ -33,7 +33,8 @@ function runTestCases(testArr) {
 
 let tests = [
     [read('nesting.js'), 74],
-    [read('nesting2.js'), 433]
+    [read('nesting2.js'), 433],
+    ['5 - 4 + 3 - 1', 3]
 ]
 
 runTestCases(tests);

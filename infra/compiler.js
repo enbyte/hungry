@@ -61,6 +61,51 @@ function calculateSlots(ir) {
     }
 }
 
+function getBinOpcode(op) {
+    switch (op) {
+        case '+':
+            return OPCODES.ADD;
+        case '-':
+            return OPCODES.SUB;
+        case '*':
+            return OPCODES.MUL;
+        case '/':
+            return OPCODES.DIV;
+        case '<<':
+            return OPCODES.SHR;
+        case '>>':
+            return OPCODES.SHL;
+        case '%':
+            return OPCODES.MOD;
+        case '<':
+            return OPCODES.LT;
+        case '>':
+            return OPCODES.GT;
+        case '<=':
+            return OPCODES.LTE;
+        case '>=':
+            return OPCODES.GTE;
+        case '==':
+        case '===':
+            return OPCODES.EQUALS;
+        case '!=':
+        case '!==':
+            return OPCODES.NEQUALS;
+        case '&':
+            return OPCODES.BAND;
+        case '^':
+            return OPCODES.XOR;
+        case '|':
+            return OPCODES.BOR;
+        case '&&':
+            return OPCODES.AND;
+        case '||':
+            return OPCODES.OR;
+        default:
+            throw new Error(`I can't getOpcode of a ${op}!`);
+    }
+}
+
 function calculateSlotsNoOpti(ir) {
     let slot = 0;
     function getSlot(inst) {
@@ -122,15 +167,7 @@ function compile(ir, passes) {
                 case i instanceof BinaryInst:
                     if (i.left.slot !== null) { bytecode.push(OPCODES.LOAD, i.left.slot); }
                     if (i.right.slot !== null) { bytecode.push(OPCODES.LOAD, i.right.slot); }
-                    if (i.op == '+') {
-                        bytecode.push(OPCODES.ADD);
-                    } else if (i.op == '==') {
-                        bytecode.push(OPCODES.EQUALS);
-                    } else if (i.op == '<') {
-                        bytecode.push(OPCODES.LT);
-                    } else {
-                        throw new Error(`Unimplemented binary op ${i} ${i.op}`);
-                    }
+                    bytecode.push(getBinOpcode(i.op))
                     if (i.slot !== null) { bytecode.push(OPCODES.STORE, i.slot) };
                     break;
                 case i instanceof CondJumpInst:

@@ -7,23 +7,96 @@ let OPCODES = {
     EQUALS: 0x05,
     STORE: 0x06,
     LOAD: 0x07,
-    LT: 0x08
+    LT: 0x08,
+    SUB: 0x09,
+    MUL: 0x0A,
+    DIV: 0x0B,
+    SHR: 0x0C,
+    SHL: 0x0D,
+    MOD: 0x0E,
+    GT: 0x0F,
+    LTE: 0x10,
+    GTE: 0x11,
+    NEQUALS: 0x12,
+    BAND: 0x13,
+    XOR: 0x14,
+    BOR: 0x15,
+    AND: 0x16,
+    OR: 0x17
 }
-
+x
 function execute(src, const_pool) {
     let stack = [];
     let slots = [];
     let pc = 0;
     let push = (x) => stack.push(x);
     let pop = () => stack.pop();
+    let r, l;
     while (pc < src.length) {
         let op = src[pc++];
         switch (op) {
             case OPCODES.ADD:
                 push(pop() + pop());
                 break;
+            case OPCODES.SUB:
+                [r, l] = [pop(), pop()];
+                push(l - r);
+                break;
+            case OPCODES.MUL:
+                push(pop() * pop());
+                break;
+            case OPCODES.DIV:
+                [r, l] = [pop(), pop()];
+                push(l / r);
+                break;
+            case OPCODES.SHR:
+                [r, l] = [pop(), pop()];
+                push(l << r);
+                break;
+            case OPCODES.SHL:
+                [r, l] = [pop(), pop()];
+                push(l >> r);
+                break;
+            case OPCODES.MOD:
+                [r, l] = [pop(), pop()];
+                push(l % r);
+                break;
+            case OPCODES.GT:
+                [r, l] = [pop(), pop()];
+                push(l > r);
+                break;
+            case OPCODES.LTE:
+                [r, l] = [pop(), pop()];
+                push(l <= r);
+                break;
+            case OPCODES.GTE:
+                [r, l] = [pop(), pop()];
+                push(l >= r);
+                break;
+            case OPCODES.NEQUALS:
+                push(pop() != pop());
+                break;
+            case OPCODES.BAND:
+                [r, l] = [pop(), pop()];
+                push(l & r);
+                break;
+            case OPCODES.XOR:
+                [r, l] = [pop(), pop()];
+                push(l ^ r);
+                break;
+            case OPCODES.BOR:
+                [r, l] = [pop(), pop()];
+                push(l | r);
+                break;
+            case OPCODES.AND:
+                [r, l] = [pop(), pop()];
+                push(l && r);
+                break;
+            case OPCODES.OR:
+                [r, l] = [pop(), pop()];
+                push(l || r);
+                break;
             case OPCODES.RET:
-                // console.log('return, stack=', stack, 'mem=', slots);
                 return stack;
             case OPCODES.LOAD_CONST:
                 push(const_pool[src[pc++]]);
@@ -47,9 +120,8 @@ function execute(src, const_pool) {
                 push(slots[src[pc++]]);
                 break;
             case OPCODES.LT:
-                let right = pop(); // some nonsense
-                let left = pop();  // future me it's 1:14 am be grateful I didn't set > for .LT and go to sleep
-                push(left < right); 
+                [r, l] = [pop(), pop()] // some nonsense
+                push(l < r); // future me it's 1:14 am be grateful I didn't set > for .LT and go to sleep
                 break;
             default:
                 throw new Error(`Unknown opcode ${op} at pc=${pc - 1}`);
