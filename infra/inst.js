@@ -30,6 +30,20 @@ class BinaryInst extends Inst {
     }
 }
 
+class UnaryInst extends Inst {
+    constructor(op, obj) {
+        super();
+        this.op = op;
+        this.operands = [obj];
+    }
+
+    get obj() { return this.operands[0] }
+
+    toString() {
+        return `${this.id} = ${this.op}(${this.obj.id})`
+    }
+}
+
 class ConstInst extends Inst {
     constructor(val) {
         super();
@@ -129,7 +143,7 @@ class RetInst extends Inst {
 }
 
 module.exports = {
-    BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
+    BinaryInst, UnaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst, 
     CondJumpInst, JumpInst, RetInst,
     PhiInst, UpsilonInst,
 }

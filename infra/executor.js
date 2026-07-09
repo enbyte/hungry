@@ -22,9 +22,12 @@ let OPCODES = {
     XOR: 0x14,
     BOR: 0x15,
     AND: 0x16,
-    OR: 0x17
+    OR: 0x17,
+    NCONV: 0x18,
+    NEG: 0x19,
+    BNOT: 0x1A
 }
-x
+
 function execute(src, const_pool) {
     let stack = [];
     let slots = [];
@@ -95,6 +98,21 @@ function execute(src, const_pool) {
             case OPCODES.OR:
                 [r, l] = [pop(), pop()];
                 push(l || r);
+                break;
+            case OPCODES.NCONV:
+                push(+pop());
+                break;
+            case OPCODES.NEG:
+                push(-pop());
+                break;
+            case OPCODES.BNOT:
+                push(~pop());
+                break;
+            case OPCODES.INC:
+                push(pop() + 1);
+                break;
+            case OPCODES.DEC:
+                push(pop() - 1);
                 break;
             case OPCODES.RET:
                 return stack;

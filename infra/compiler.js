@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -7,6 +7,9 @@ function calculateSlots(ir) {
         if (inst.slot == null) {
             inst.slot = doNull ? null : slot++;
         }
+    }
+    function assignNull(inst) {
+        return assignSlot(inst, true)
     }
     for (let b of ir.blocks) {
         let vStack = [];
@@ -22,12 +25,21 @@ function calculateSlots(ir) {
                     break;
                 case i instanceof BinaryInst:
                     if (vStack.at(-1) == i.right.id && vStack.at(-2) == i.left.id) {
-                        assignSlot(i.right, true);
-                        assignSlot(i.left, true);
+                        assignNull(i.right);
+                        assignNull(i.left);
                         vStack.pop(); vStack.pop();
                     } else {
                         assignSlot(i.right);
                         assignSlot(i.left);
+                    }
+                    vStack.push(i.id);
+                    break;
+                case i instanceof UnaryInst:
+                    if (vStack.at(-1) == i.obj.id) {
+                        assignNull(i.obj);
+                        vStack.pop();
+                    } else {
+                        assignSlot(i.obj)
                     }
                     vStack.push(i.id);
                     break;
@@ -106,6 +118,19 @@ function getBinOpcode(op) {
     }
 }
 
+function getUnaryOpcode(op) {
+    switch (op) {
+        case '+':
+            return OPCODES.NCONV;
+        case '-':
+            return OPCODES.NEG;
+        case '~':
+            return OPCODES.BNOT;
+        default:
+            throw new Error(`I can't getUnaryOpcode of a ${op}!`)
+    }
+}
+
 function calculateSlotsNoOpti(ir) {
     let slot = 0;
     function getSlot(inst) {
@@ -169,6 +194,15 @@ function compile(ir, passes) {
                     if (i.right.slot !== null) { bytecode.push(OPCODES.LOAD, i.right.slot); }
                     bytecode.push(getBinOpcode(i.op))
                     if (i.slot !== null) { bytecode.push(OPCODES.STORE, i.slot) };
+                    break;
+                case i instanceof UnaryInst:
+                    if (i.obj.slot !== null) {
+                        bytecode.push(OPCODES.LOAD, i.obj.slot);
+                    }
+                    bytecode.push(getUnaryOpcode(i.op));
+                    if (i.slot !== null) {
+                        bytecode.push(OPCODES.STORE, i.slot);
+                    }
                     break;
                 case i instanceof CondJumpInst:
                     if (i.cond.slot !== null) { bytecode.push(OPCODES.LOAD, i.cond.slot); }

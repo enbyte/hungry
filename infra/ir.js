@@ -1,7 +1,7 @@
 const { parse } = require("@babel/parser");
 const t = require("@babel/types");
 const { Block } = require("./block.js")
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, RetInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, RetInst, UnaryInst } = require("./inst.js")
 
 function reversePostOrder(entry) {
     let visited = new Set();
@@ -65,6 +65,20 @@ class IR {
             inst = new BinaryInst(stmt.operator, left, right);
             this.block.insts.push(inst);
             return inst;
+        } else if (t.isUnaryExpression(stmt)) {
+            obj = this.lowerStatement(stmt.argument);
+            inst = new UnaryInst(stmt.operator, obj);
+            this.block.insts.push(inst);
+            return inst;
+        } else if (t.isUpdateExpression(stmt)) {
+            let obj = this.lowerStatement(stmt.argument);
+            let one = new ConstInst(1);
+            this.block.insts.push(one);
+            let add = new BinaryInst(stmt.operator == '++' ? '+' : '-', obj, one);
+            this.block.insts.push(add);
+            inst = new AssignmentInst(obj.name, add);
+            this.block.insts.push(inst);
+            return inst;    
         } else if (t.isLiteral(stmt)) {
             inst = new ConstInst(stmt.value);
             this.block.insts.push(inst);
