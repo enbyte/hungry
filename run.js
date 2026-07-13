@@ -12,11 +12,11 @@ const ir = new IR(src, [
     // IR passes go here
 ]);
 
-console.log(ir.toString());
+console.log("Produced ir is:\n", ir.toString());
 
-let [bc, pool] = compile(ir, [
+/* let [bc, pool] = compile(ir, [
     // Compiler passes go here
 ]);
 
 console.log('Executing...');
-console.log(execute(bc, pool));
+console.log(execute(bc, pool)); */
