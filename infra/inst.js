@@ -136,6 +136,49 @@ class UndefinedConstInst extends Inst {
     }
 }
 
+class ReturnInst extends Inst {
+    constructor(val) {
+        super();
+        this.operands = [val];
+    }
+    get val() { return this.operands[0] }
+    set val(x) { this.operands[0] = x }
+
+    toString() {
+        return `${this.id} = Return ${this.val.id}`
+    }
+}
+
+class GetArgumentInst extends Inst {
+    constructor(idx, name) {
+        super();
+        this.idx = idx;
+        this.name = name
+    }
+
+    toString() {
+        return `${this.id} = GetArgument(#${this.idx}, ^${this.name})`
+    }
+}
+
+class CallInst extends Inst {
+    constructor(name, args) {
+        super();
+        this.name = name;
+        this.operands = [...args];
+
+        this.calleeEntry = null;
+        
+    }
+
+    get args() { return this.operands }
+    set args(x) { this.operands = x }
+
+    toString() {
+        return `${this.id} = Call ${this.name}(${this.args.map(a => a.id).join(', ')})`
+    }
+}
+
 class RetInst extends Inst {
     toString() {
         return `${this.id} = Return`
@@ -143,7 +186,7 @@ class RetInst extends Inst {
 }
 
 module.exports = {
-    BinaryInst, UnaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst, 
-    CondJumpInst, JumpInst, RetInst,
-    PhiInst, UpsilonInst,
+    BinaryInst, UnaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
+    CondJumpInst, JumpInst, RetInst, ReturnInst, CallInst,
+    PhiInst, UpsilonInst, GetArgumentInst
 }

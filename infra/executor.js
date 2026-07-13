@@ -25,13 +25,15 @@ let OPCODES = {
     OR: 0x17,
     NCONV: 0x18,
     NEG: 0x19,
-    BNOT: 0x1A
+    BNOT: 0x1A,
+    GET_ARG: 0x1B,
+    CALL: 0x1C,
+    RETURN: 0x1D
 }
 
-function execute(src, const_pool) {
+function execute(src, const_pool, args=[], pc=0) {
     let stack = [];
     let slots = [];
-    let pc = 0;
     let push = (x) => stack.push(x);
     let pop = () => stack.pop();
     let r, l;
@@ -135,6 +137,20 @@ function execute(src, const_pool) {
                 [r, l] = [pop(), pop()] // some nonsense
                 push(l < r); // future me it's 1:14 am be grateful I didn't set > for .LT and go to sleep
                 break;
+            case OPCODES.GET_ARG:
+                push(args[src[pc++]]);
+                break;
+            case OPCODES.CALL:
+                let target = src[pc++];
+                let arity = src[pc++];
+                let cArgs = [];
+                while (arity--) {
+                    cArgs.unshift(pop());
+                }
+                push(execute(src, const_pool, cArgs, target))
+                break;
+            case OPCODES.RETURN:
+                return pop();
             default:
                 throw new Error(`Unknown opcode ${op} at pc=${pc - 1}`);
         }
