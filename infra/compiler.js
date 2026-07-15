@@ -155,6 +155,42 @@ function getUnaryOpcode(op) {
     }
 }
 
+function eliminateDeadOps(f) {
+    for (let b of f.blocks) {
+        for (let i of b.insts) {
+            let consumed = false;
+            for (let _b of f.blocks) {
+                if (consumed) break;
+                for (let _i of _b.insts) {
+                    if (_i.operands.includes(i)) {
+                        consumed = true;
+                        break;
+                    }
+                    if (_i instanceof UpsilonInst && _i.val === i) {
+                        consumed = true;
+                        break;
+                    }
+                }
+            }
+            let isEndStack = (i instanceof BinaryInst && i.op == '+' && i.right instanceof ConstInst && i.right.val == 0);
+            let isCtrlFlow = (i instanceof JumpInst ||
+                              i instanceof CondJumpInst ||
+                              i instanceof RetInst ||
+                              i instanceof ReturnInst ||
+                              i instanceof CallInst || // callInst can have side effects even if not consumed
+                              i instanceof UpsilonInst ); // || i instanceof SideEffectInst
+            
+            if (!consumed && !isEndStack && !isCtrlFlow) {
+                let idx = b.insts.indexOf(i);
+                b.insts.splice(idx, 1);
+            }
+            if (i instanceof CallInst) {
+                i.needsPop = !consumed;
+            }
+        }
+    }
+}
+
 function compile(ir, passes) {
     let bytecode = [];
     let pool = [];
@@ -167,6 +203,7 @@ function compile(ir, passes) {
     let blockLocs = {};
 
     for (let f of ir.functions) {
+        eliminateDeadOps(f);
         calculateSlots(f);
 
         let defSites = new Set();
@@ -303,6 +340,10 @@ function compile(ir, passes) {
                             bytecode.push(i.args.length);
                             if (i.slot !== null) {
                                 bytecode.push(OPCODES.STORE, i.slot);
+                            } else {
+                                if (i.needsPop) {
+                                    bytecode.push(OPCODES.POP);
+                                }
                             }
                             break;
                         case i instanceof ReturnInst:

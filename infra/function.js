@@ -60,7 +60,7 @@ class IRFunction {
             this.block.insts.push(inst);
             return inst;
         } else if (t.isUnaryExpression(stmt)) {
-            obj = this.lowerStatement(stmt.argument);
+            let obj = this.lowerStatement(stmt.argument);
             inst = new UnaryInst(stmt.operator, obj);
             this.block.insts.push(inst);
             return inst;

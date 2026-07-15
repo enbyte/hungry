@@ -28,7 +28,8 @@ let OPCODES = {
     BNOT: 0x1A,
     GET_ARG: 0x1B,
     CALL: 0x1C,
-    RETURN: 0x1D
+    RETURN: 0x1D,
+    POP: 0x1E
 }
 
 function execute(src, const_pool, args=[], pc=0) {
@@ -151,6 +152,9 @@ function execute(src, const_pool, args=[], pc=0) {
                 break;
             case OPCODES.RETURN:
                 return pop();
+            case OPCODES.POP: // popcode
+                pop();
+                break;
             default:
                 throw new Error(`Unknown opcode ${op} at pc=${pc - 1}`);
         }

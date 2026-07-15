@@ -61,6 +61,54 @@ function disassemble(src, pool) {
             case OPCODES.SUB:
                 log('SUB');
                 break;
+            case OPCODES.DIV:
+                log('DIV');
+                break;
+            case OPCODES.SHR:
+                log('SHR');
+                break;
+            case OPCODES.SHL:
+                log('SHL');
+                break;
+            case OPCODES.MOD:
+                log('MOD');
+                break;
+            case OPCODES.LTE:
+                log('LTE');
+                break;
+            case OPCODES.GTE:
+                log('GTE');
+                break;
+            case OPCODES.NEQUALS:
+                log('NEQ');
+                break;
+            case OPCODES.BAND:
+                log('BAND');
+                break;
+            case OPCODES.XOR:
+                log('XOR');
+                break;
+            case OPCODES.BOR:
+                log('BOR');
+                break;
+            case OPCODES.AND:
+                log('AND');
+                break;
+            case OPCODES.OR:
+                log('OR');
+                break;
+            case OPCODES.NCONV:
+                log('NCONV');
+                break;
+            case OPCODES.NEG:
+                log('NEG');
+                break;
+            case OPCODES.BNOT:
+                log('BNOT');
+                break;
+            case OPCODES.POP:
+                log('POP');
+                break;
             default:
                 throw new Error(`I can't decompile a ${op}!`);
         }
