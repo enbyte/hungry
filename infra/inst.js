@@ -168,6 +168,8 @@ class CallInst extends Inst {
         this.operands = [...args];
 
         this.calleeEntry = null;
+
+        this.needsPop = true;
         
     }
 
