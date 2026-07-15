@@ -19,14 +19,14 @@ class IR {
             }
         }
 
-        console.log('top, fns len', top.length, fns.length);
+        // console.log('top, fns len', top.length, fns.length);
 
         this.entry = new IRFunction('_entry', top, []);
 
         this.functions = [this.entry, ...fns.map(fn => new IRFunction(fn.id.name, fn.body.body, fn.params))]
 
         for (let f of this.functions) {
-            console.log('doing stuff for', f.name);
+            // console.log('doing stuff for', f.name);
             f.computeDominance();
             f.placePhis();
             f.rename();

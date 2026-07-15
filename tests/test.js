@@ -35,6 +35,9 @@ let tests = [
     [read('nesting.js'), 74],
     [read('nesting2.js'), 433],
     [read('control_flow.js'), 484],
+    [read('factorial.js'), 120],
+    [read('fib.js'), 55],
+    [read('mega_slop.js'), 318419]
 ]
 
 runTestCases(tests);

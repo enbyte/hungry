@@ -11,6 +11,21 @@ function calculateSlots(ir) {
     function assignNull(inst) {
         return assignSlot(inst, true)
     }
+
+    let useCount = new Map();
+    for (let b of ir.blocks) {
+        for (let i of b.insts) {
+            for (let op of i.operands) {
+                if (op && op.id) {
+                    useCount.set(op.id, (useCount.get(op.id) || 0) + 1);
+                }
+            }
+            if (i instanceof UpsilonInst) {
+                useCount.set(i.val.id, (useCount.get(i.val.id) || 0) + 1);
+            }
+        }
+    }
+
     for (let b of ir.blocks) {
         let vStack = [];
         for (let i of b.insts) {
@@ -47,17 +62,21 @@ function calculateSlots(ir) {
                         assignSlot(i.val);
                     }
                     break;
-                case i instanceof BinaryInst:
-                    if (vStack.at(-1) == i.right.id && vStack.at(-2) == i.left.id) {
+                case i instanceof BinaryInst: {
+                    let leftReused = (useCount.get(i.left.id) || 0) > 1;
+                    let rightReused = (useCount.get(i.right.id) || 0) > 1;
+                    let onStackInOrder = vStack.at(-1) == i.right.id && vStack.at(-2) == i.left.id;
+                    if (leftReused || rightReused || !onStackInOrder) {
+                        assignSlot(i.right);
+                        assignSlot(i.left);
+                    } else {
                         assignNull(i.right);
                         assignNull(i.left);
                         vStack.pop(); vStack.pop();
-                    } else {
-                        assignSlot(i.right);
-                        assignSlot(i.left);
                     }
                     vStack.push(i.id);
                     break;
+                }
                 case i instanceof UnaryInst:
                     if (vStack.at(-1) == i.obj.id) {
                         assignNull(i.obj);

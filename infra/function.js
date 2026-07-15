@@ -148,7 +148,7 @@ class IRFunction {
     }
 
     lower(target = this.ast) {
-        console.log(`I'm ${this.name} lowering ${JSON.stringify(target.length)}`)
+        // console.log(`I'm ${this.name} lowering ${JSON.stringify(target.length)}`)
         for (let expr of target) { // [*Statement|VariableDeclaration, ...]
             if (t.isExpressionStatement(expr)) {
                 this.lowerStatement(expr.expression);
