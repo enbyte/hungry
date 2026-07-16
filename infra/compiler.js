@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -109,6 +109,41 @@ function calculateSlots(ir) {
                     break;
                 case i instanceof RetInst:
                     break;
+                case i instanceof GetPropInst: {
+                    let objReused = (useCount.get(i.obj.id) || 0) > 1;
+                    let propReused = (useCount.get(i.prop.id) || 0) > 1;
+                    let onStackInOrder = vStack.at(-1) == i.prop.id && vStack.at(-2) == i.obj.id;
+                    if (objReused || propReused || !onStackInOrder) {
+                        assignSlot(i.prop);
+                        assignSlot(i.obj);
+                    } else {
+                        assignNull(i.prop);
+                        assignNull(i.obj);
+                        vStack.pop(); vStack.pop();
+                    }
+                    vStack.push(i.id);
+                    break;
+                }
+                case i instanceof ObjectInst:
+                    vStack.push(i.id);
+                    break;
+                case i instanceof SetPropInst: {
+                    let objReused = (useCount.get(i.obj.id) || 0) > 1;
+                    let propReused = (useCount.get(i.prop.id) || 0) > 1;
+                    let valReused = (useCount.get(i.val.id) || 0) > 1;
+                    let onStackInOrder = vStack.at(-1) == i.val.id && vStack.at(-2) == i.prop.id && vStack.at(-3) == i.obj.id;
+                    if (objReused || propReused || valReused || !onStackInOrder) {
+                        assignSlot(i.prop);
+                        assignSlot(i.obj);
+                        assignSlot(i.val);
+                    } else {
+                        assignNull(i.prop);
+                        assignNull(i.obj);
+                        assignNull(i.val);
+                        vStack.pop(); vStack.pop(); vStack.pop();
+                    }
+                    break;
+                }
                 default:
                     throw new Error(`I can't calculateSlots for a ${i}!`)
             }
@@ -176,7 +211,7 @@ function getUnaryOpcode(op) {
 
 function eliminateDeadOps(f) {
     for (let b of f.blocks) {
-        for (let i of b.insts) {
+        for (let i of [...b.insts]) {
             let consumed = false;
             for (let _b of f.blocks) {
                 if (consumed) break;
@@ -192,14 +227,9 @@ function eliminateDeadOps(f) {
                 }
             }
             let isEndStack = (i instanceof BinaryInst && i.op == '+' && i.right instanceof ConstInst && i.right.val == 0);
-            let isCtrlFlow = (i instanceof JumpInst ||
-                              i instanceof CondJumpInst ||
-                              i instanceof RetInst ||
-                              i instanceof ReturnInst ||
-                              i instanceof CallInst || // callInst can have side effects even if not consumed
-                              i instanceof UpsilonInst ); // || i instanceof SideEffectInst
-            
-            if (!consumed && !isEndStack && !isCtrlFlow) {
+            let hasWrites = i.effects().writes.length > 0;
+
+            if (!consumed && !hasWrites && !isEndStack) {
                 let idx = b.insts.indexOf(i);
                 b.insts.splice(idx, 1);
             }
@@ -370,6 +400,39 @@ function compile(ir, passes) {
                                 bytecode.push(OPCODES.LOAD, i.val.slot);
                             }
                             bytecode.push(OPCODES.RETURN);
+                            break;
+                        case i instanceof ObjectInst:
+                            bytecode.push(OPCODES.NEW_OBJ);
+                            if (i.slot !== null) {
+                                bytecode.push(OPCODES.STORE, i.slot)
+                            }
+                            break;
+                        case i instanceof GetPropInst:
+                            if (i.obj.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.obj.slot);
+                            }
+                            if (i.prop.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.prop.slot);
+                            }
+                            bytecode.push(OPCODES.GET_PROP);
+                            if (i.slot !== null) {
+                                bytecode.push(OPCODES.STORE, i.slot);
+                            }
+                            break;
+                        case i instanceof SetPropInst:
+                            if (i.obj.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.obj.slot);
+                            }
+                            if (i.prop.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.prop.slot);
+                            }
+                            if (i.val.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.val.slot);
+                            }
+                            bytecode.push(OPCODES.SET_PROP);
+                            if (i.slot !== null) {
+                                bytecode.push(OPCODES.STORE, i.slot);
+                            }
                             break;
                         default:
                             throw new Error(`Unimplemented inst compile ${i}`);

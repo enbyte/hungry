@@ -26,7 +26,7 @@ class Block {
     }
 
     toString() {
-        return `${this.id}, doms [${this.dominators.map(x => x.id).join(', ')}], domChildren [${this.domChildren.map(x => x.id).join(', ')}]`;
+        return `${this.id}`;
     }
 }
 

@@ -109,6 +109,15 @@ function disassemble(src, pool) {
             case OPCODES.POP:
                 log('POP');
                 break;
+            case OPCODES.SET_PROP:
+                log('SET_PROP');
+                break;
+            case OPCODES.GET_PROP:
+                log('GET_PROP');
+                break;
+            case OPCODES.NEW_OBJ:
+                log('NEW_OBJ');
+                break;
             default:
                 throw new Error(`I can't decompile a ${op}!`);
         }

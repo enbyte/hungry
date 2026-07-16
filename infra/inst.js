@@ -1,3 +1,5 @@
+const { Effects, World, SSAState, Memory, Control, IO, Pure } = require('./effects.js');
+
 class Inst {
     static id = 0;
 
@@ -9,6 +11,10 @@ class Inst {
         this.id = Inst.getId();
         this.operands = [];
         this.slot = null;
+    }
+
+    effects() {
+        return Pure;
     }
 
     toString() {
@@ -26,7 +32,7 @@ class BinaryInst extends Inst {
     get right() { return this.operands[1] }
 
     toString() {
-        return `${this.id} = ${this.op}(${this.left.id}, ${this.right.id}); slot = ${this.slot}`
+        return `${this.id} = ${this.op}(${this.left.id}, ${this.right.id});`
     }
 }
 
@@ -51,7 +57,7 @@ class ConstInst extends Inst {
     }
 
     toString() {
-        return `${this.id} = Const<${typeof this.val}>(${this.val}); slot = ${this.slot}`
+        return `${this.id} = Const<${typeof this.val}>(${this.val});`
     }
 }
 
@@ -91,6 +97,10 @@ class CondJumpInst extends Inst {
     }
     get cond() { return this.operands[0] }
 
+    effects() {
+        return new Effects([], [SSAState]);
+    }
+
     toString() {
         return `${this.id} = JumpIf ${this.cond.id} -> ${this.target.id} else ${this.alternate.id}`
     }
@@ -100,6 +110,10 @@ class JumpInst extends Inst {
     constructor(target) {
         super();
         this.target_block = target;
+    }
+
+    effects() {
+        return new Effects([], [SSAState]);
     }
 
     toString() {
@@ -113,8 +127,12 @@ class PhiInst extends Inst {
         this.vari = vari;
     }
 
+    effects() {
+        return new Effects([SSAState], []);
+    }
+
     toString() {
-        return `${this.id} = Phi(^${this.vari}); slot = ${this.slot}`
+        return `${this.id} = Phi(^${this.vari});`
     }
 }
 
@@ -125,8 +143,12 @@ class UpsilonInst extends Inst {
         this.target = target;
     }
 
+    effects() {
+        return new Effects([], [SSAState]);
+    }
+
     toString() {
-        return `${this.id} = Upsilon(${this.val.id}, ^${this.target.id}); slot = ${this.slot}`
+        return `${this.id} = Upsilon(${this.val.id}, ^${this.target.id});`
     }
 }
 
@@ -143,6 +165,10 @@ class ReturnInst extends Inst {
     }
     get val() { return this.operands[0] }
     set val(x) { this.operands[0] = x }
+
+    effects() {
+        return new Effects([], [SSAState]);
+    }
 
     toString() {
         return `${this.id} = Return ${this.val.id}`
@@ -176,6 +202,10 @@ class CallInst extends Inst {
     get args() { return this.operands }
     set args(x) { this.operands = x }
 
+    effects() {
+        return new Effects([World], [World]);
+    }
+
     toString() {
         return `${this.id} = Call ${this.name}(${this.args.map(a => a.id).join(', ')})`
     }
@@ -185,10 +215,71 @@ class RetInst extends Inst {
     toString() {
         return `${this.id} = Return`
     }
+
+    effects() {
+        return new Effects([], [SSAState]);
+    }
+}
+
+class ObjectInst extends Inst {
+    constructor() {
+        super();
+    }
+
+    effects() {
+        return new Effects([], [Memory]);
+    }
+
+    toString() {
+        return `${this.id} = Object {}`
+    }
+}
+
+class GetPropInst extends Inst {
+    constructor(obj, prop) {
+        super();
+        this.operands = [obj, prop];
+    }
+
+    effects() {
+        return new Effects([Memory], []);
+    }
+
+    toString() {
+        return `${this.id} = GetProp ${this.prop.id} of ${this.obj.id}`
+    }
+
+    get obj() { return this.operands[0] };
+    set obj(x) { this.operands[0] = x };
+    get prop() { return this.operands[1] };
+    set prop(x) { this.operands[1] = x };
+}
+
+class SetPropInst extends Inst {
+    constructor(obj, prop, val) {
+        super();
+        this.operands = [obj, prop, val];
+    }
+
+    effects() {
+        return new Effects([], [Memory]);
+    }
+
+    toString() {
+        return `${this.id} = SetProp ${this.prop.id} of ${this.obj.id} to ${this.val.id}`
+    }
+
+    get obj() { return this.operands[0] };
+    set obj(x) { this.operands[0] = x };
+    get prop() { return this.operands[1] };
+    set prop(x) { this.operands[1] = x };
+    get val() { return this.operands[2] };
+    set val(x) { this.operands[2] = x };
 }
 
 module.exports = {
     BinaryInst, UnaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
     CondJumpInst, JumpInst, RetInst, ReturnInst, CallInst,
-    PhiInst, UpsilonInst, GetArgumentInst
+    PhiInst, UpsilonInst, GetArgumentInst,
+    ObjectInst, GetPropInst, SetPropInst
 }

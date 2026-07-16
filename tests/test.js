@@ -36,7 +36,9 @@ let tests = [
     [read('nesting2.js'), 433],
     [read('control_flow.js'), 484],
     [read('factorial.js'), 120],
-    [read('fib.js'), 55],
+    [read('fib.js'), 440],
+    [read('objects.js'), 6],
+    [read('mega_object_slop.js'), 705],
     [read('mega_slop.js'), 318419]
 ]
 
