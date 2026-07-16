@@ -127,6 +127,9 @@ function fibSum():
   ```
 The variable name references inside the Phi are vestigial but useful to keep for debugging. The phi/upsilon model basically gets rid of any headaches with SSA relating to phis, especially for what is just a virtualizing compiler that targets its own language, since no quirks of javascript really have to be emulated. The mystery `%47` that doesn't exist that's returned by `b-3` of `fib` is just a created `UndefinedConstInst` that wasn't added to the inst list. This block is obviously never reached, as every path through that function ends in a return statement that isn't the end of the function. 
 
+## testing
+Tests can be run with `node tests/test.js`. Most tests are either random examples of things that broke the lowerer/compiler previously, or slop resulting from a prompt roughly equivalent to "here are all the ops I support, generate the most comprehensive test that tests all of them interacting," with the expected value being the result of pasting into browser console. To lower, compile, disassemble, and execute a file of your choice, `node run.js <file>`. Since there aren't any builtins yet, the <x> + 0 pattern is specifically not removed by the dead code eliminator so you can obtain a value and then push it onto the stack at the end of your program to see what the output is. `console.log` coming soon, I promise!
+
 ## conclusion
 Those who have suffered all the way through this document to the end will be pleased to learn that the earlier cliffhanger of my hunger was resolved after naming the repo
 by eating some noodles. 
