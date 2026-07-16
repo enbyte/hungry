@@ -29,7 +29,10 @@ let OPCODES = {
     GET_ARG: 0x1B,
     CALL: 0x1C,
     RETURN: 0x1D,
-    POP: 0x1E
+    POP: 0x1E,
+    NEW_OBJ: 0x1F,
+    GET_PROP: 0x20,
+    SET_PROP: 0x21
 }
 
 function execute(src, const_pool, args=[], pc=0) {
@@ -37,7 +40,7 @@ function execute(src, const_pool, args=[], pc=0) {
     let slots = [];
     let push = (x) => stack.push(x);
     let pop = () => stack.pop();
-    let r, l;
+    let r, l, obj, prop, val;
     while (pc < src.length) {
         let op = src[pc++];
         switch (op) {
@@ -154,6 +157,17 @@ function execute(src, const_pool, args=[], pc=0) {
                 return pop();
             case OPCODES.POP: // popcode
                 pop();
+                break;
+            case OPCODES.NEW_OBJ:
+                push({});
+                break;
+            case OPCODES.GET_PROP:
+                [prop, obj] = [pop(), pop()];
+                push(obj[prop]);
+                break;
+            case OPCODES.SET_PROP:
+                [val, prop, obj] = [pop(), pop(), pop()];
+                obj[prop] = val;
                 break;
             default:
                 throw new Error(`Unknown opcode ${op} at pc=${pc - 1}`);

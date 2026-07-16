@@ -1,6 +1,6 @@
 const { Block } = require("./block");
 const t = require("@babel/types");
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, CallInst, UnaryInst, GetArgumentInst, ReturnInst } = require("./inst.js");
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, CallInst, UnaryInst, GetArgumentInst, ReturnInst, RetInst, ObjectInst, SetPropInst, GetPropInst } = require("./inst.js");
 
 function reversePostOrder(entry) {
     let visited = new Set();
@@ -51,6 +51,14 @@ class IRFunction {
         return this.blocks.find(b => b.id == id);
     }
 
+    isTerminated(block = this.block) {
+        let last = block.insts.at(-1);
+        return last instanceof ReturnInst ||
+            last instanceof RetInst ||
+            last instanceof JumpInst ||
+            last instanceof CondJumpInst;
+    }
+
     lowerStatement(stmt) {
         let left, right, inst, init, id;
         if (t.isBinaryExpression(stmt)) {
@@ -72,13 +80,13 @@ class IRFunction {
             this.block.insts.push(add);
             inst = new AssignmentInst(obj.name, add);
             this.block.insts.push(inst);
-            return inst;    
+            return inst;
         } else if (t.isLiteral(stmt)) {
             inst = new ConstInst(stmt.value);
             this.block.insts.push(inst);
             return inst;
         } else if (t.isVariableDeclarator(stmt)) {
-            init = this.lowerStatement(stmt.init);
+            init = stmt.init ? this.lowerStatement(stmt.init) : new UndefinedConstInst();
             inst = new AssignmentInst(stmt.id.name, init);
             this.block.insts.push(inst);
             return inst;
@@ -86,8 +94,21 @@ class IRFunction {
             return new IdentifierRefInst(stmt.name);
         } else if (t.isAssignmentExpression(stmt)) {
             init = this.lowerStatement(stmt.right);
-            inst = new AssignmentInst(stmt.left.name, init);
-            this.block.insts.push(inst);
+            if (t.isIdentifier(stmt.left)) {
+                inst = new AssignmentInst(stmt.left.name, init);
+                this.block.insts.push(inst);
+            } else if (t.isMemberExpression(stmt.left)) {
+                let obj = this.lowerStatement(stmt.left.object);
+                let prop;
+                if (stmt.left.computed) {
+                    prop = this.lowerStatement(stmt.left.property);
+                } else {
+                    prop = new ConstInst(stmt.left.property.name);
+                    this.block.insts.push(prop);
+                }
+                inst = new SetPropInst(obj, prop, init);
+                this.block.insts.push(inst);
+            }
             return inst;
         } else if (t.isCallExpression(stmt)) {
             let args = stmt.arguments.map(a => this.lowerStatement(a));
@@ -97,6 +118,29 @@ class IRFunction {
         } else if (t.isReturnStatement(stmt)) {
             let val = stmt.argument ? this.lowerStatement(stmt.argument) : new UndefinedConstInst();
             inst = new ReturnInst(val);
+            this.block.insts.push(inst);
+            return inst;
+        } else if (t.isObjectExpression(stmt)) {
+            let obj = new ObjectInst();
+            this.block.insts.push(obj);
+            for (let p of stmt.properties) {
+                let keyName = t.isIdentifier(p.key) ? p.key.name : p.key.value;
+                let prop = new ConstInst(keyName);
+                let val = this.lowerStatement(p.value);
+                let setProp = new SetPropInst(obj, prop, val);
+                this.block.insts.push(prop, setProp);
+            }
+            return obj;
+        } else if (t.isMemberExpression(stmt)) {
+            let obj = this.lowerStatement(stmt.object);
+            let prop;
+            if (stmt.computed) {
+                prop = this.lowerStatement(stmt.property);
+            } else {
+                prop = new ConstInst(stmt.property.name);
+                this.block.insts.push(prop);
+            }
+            inst = new GetPropInst(obj, prop);
             this.block.insts.push(inst);
             return inst;
         } else {
@@ -129,8 +173,10 @@ class IRFunction {
         this.block = body;
         let consBody = t.isBlockStatement(expr.consequent) ? expr.consequent.body : [expr.consequent];
         this.lower(consBody);
-        this.block.insts.push(new JumpInst(post));
-        this.block.addChild(post);
+        if (!this.isTerminated()) {
+            this.block.insts.push(new JumpInst(post));
+            this.block.addChild(post);
+        }
 
         if (elseBlock != null) {
             this.block = elseBlock;
@@ -139,8 +185,10 @@ class IRFunction {
             } else {
                 let altBody = t.isBlockStatement(alternate) ? alternate.body : [alternate];
                 this.lower(altBody);
-                this.block.insts.push(new JumpInst(post));
-                this.block.addChild(post);
+                if (!this.isTerminated()) {
+                    this.block.insts.push(new JumpInst(post));
+                    this.block.addChild(post);
+                }
             }
         }
 
@@ -174,8 +222,10 @@ class IRFunction {
 
                 this.block = body;
                 this.lower(expr.body.body);
-                this.block.insts.push(new JumpInst(cond));
-                this.block.addChild(cond);
+                if (!this.isTerminated()) {
+                    this.block.insts.push(new JumpInst(cond));
+                    this.block.addChild(cond);
+                }
 
                 this.block = post;
             } else if (t.isForStatement(expr)) {
@@ -213,8 +263,10 @@ class IRFunction {
                 this.block = body;
                 let bodyBody = t.isBlockStatement(expr.body) ? expr.body.body : [expr.body];
                 this.lower(bodyBody);
-                this.block.insts.push(new JumpInst(update));
-                this.block.addChild(update);
+                if (!this.isTerminated()) {
+                    this.block.insts.push(new JumpInst(update));
+                    this.block.addChild(update);
+                }
 
                 this.block = update;
                 if (expr.update) {
@@ -228,6 +280,9 @@ class IRFunction {
                 this.lowerStatement(expr);
             } else {
                 throw new Error(`Unimplemented top-level expression type ${expr.type}`);
+            }
+            if (this.isTerminated()) {
+                break;
             }
         }
     }

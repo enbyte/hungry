@@ -41,7 +41,10 @@ class IR {
                         if (f.name == '_entry') {
                             b.insts.push(new RetInst());
                         } else {
-                            b.insts.push(new ReturnInst(new UndefinedConstInst()));
+                            let ud = new UndefinedConstInst()
+                            let ret = new ReturnInst(ud);
+                            b.insts.push(ret);
+                            console.log(`Added ${ret.id} that Return s ${ud.id}`)
                         }
                     }
                 }
