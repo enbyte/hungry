@@ -1,3 +1,6 @@
+function interferes(a, b) {
+    return a.pre <= b.post && b.pre <= a.post;
+}
 class Effects {
     constructor(reads = [], writes = []) {
         this.reads = reads;
@@ -39,8 +42,8 @@ class AbstractHeap {
 
 const World = new AbstractHeap('World');
 const Memory = new AbstractHeap('Memory', World);
-const SSAState = new AbstractHeap('SSAState', World);
-const Control = new AbstractHeap('Control', World);
+const SSAState = new AbstractHeap('SSAState', World); // TODO: Separate heaps per phi
+const Control = new AbstractHeap('Control', World); // Just for stopping DCE from blasting controlflow. Sloppy way of doing it but wtv
 const IO = new AbstractHeap('IO', World);
 
 let counter = 0;
@@ -51,9 +54,6 @@ function assignRanges(node) {
 }
 assignRanges(World);
 
-function interferes(a, b) {
-    return a.pre <= b.post && b.pre <= a.post;
-}
 
 module.exports = {
     AbstractHeap, Effects,

@@ -32,7 +32,8 @@ let OPCODES = {
     POP: 0x1E,
     NEW_OBJ: 0x1F,
     GET_PROP: 0x20,
-    SET_PROP: 0x21
+    SET_PROP: 0x21,
+    NEW_ARR: 0x22
 }
 
 function execute(src, const_pool, args=[], pc=0) {
@@ -160,6 +161,9 @@ function execute(src, const_pool, args=[], pc=0) {
                 break;
             case OPCODES.NEW_OBJ:
                 push({});
+                break;
+            case OPCODES.NEW_ARR:
+                push([]);
                 break;
             case OPCODES.GET_PROP:
                 [prop, obj] = [pop(), pop()];

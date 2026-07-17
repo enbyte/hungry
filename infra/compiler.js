@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -125,6 +125,9 @@ function calculateSlots(ir) {
                     break;
                 }
                 case i instanceof ObjectInst:
+                    vStack.push(i.id);
+                    break;
+                case i instanceof ArrayInst:
                     vStack.push(i.id);
                     break;
                 case i instanceof SetPropInst: {
@@ -405,6 +408,12 @@ function compile(ir, passes) {
                             bytecode.push(OPCODES.NEW_OBJ);
                             if (i.slot !== null) {
                                 bytecode.push(OPCODES.STORE, i.slot)
+                            }
+                            break;
+                        case i instanceof ArrayInst:
+                            bytecode.push(OPCODES.NEW_ARR);
+                            if (i.slot !== null) {
+                                bytecode.push(OPCODES.STORE, i.slot);
                             }
                             break;
                         case i instanceof GetPropInst:

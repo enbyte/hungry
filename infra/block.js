@@ -1,3 +1,5 @@
+const { RetInst, ReturnInst, CondJumpInst, JumpInst } = require('./inst.js');
+
 class Block {
     static id = 0;
 
@@ -23,6 +25,17 @@ class Block {
         for (let child of children) {
             this.addChild(child);
         }
+    }
+
+    isTerminated() {
+        if (this.insts.length == 0) {
+            return false;
+        }
+        let last = this.insts.at(-1);
+        return last instanceof ReturnInst ||
+            last instanceof RetInst ||
+            last instanceof JumpInst ||
+            last instanceof CondJumpInst;
     }
 
     toString() {
