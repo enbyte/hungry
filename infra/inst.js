@@ -98,7 +98,7 @@ class CondJumpInst extends Inst {
     get cond() { return this.operands[0] }
 
     effects() {
-        return new Effects([], [SSAState]);
+        return new Effects([], [Control]);
     }
 
     toString() {
@@ -113,7 +113,7 @@ class JumpInst extends Inst {
     }
 
     effects() {
-        return new Effects([], [SSAState]);
+        return new Effects([], [Control]);
     }
 
     toString() {
@@ -167,7 +167,7 @@ class ReturnInst extends Inst {
     set val(x) { this.operands[0] = x }
 
     effects() {
-        return new Effects([], [SSAState]);
+        return new Effects([], [Control]);
     }
 
     toString() {
@@ -217,21 +217,27 @@ class RetInst extends Inst {
     }
 
     effects() {
-        return new Effects([], [SSAState]);
+        return new Effects([], [Control]);
     }
 }
 
 class ObjectInst extends Inst {
-    constructor() {
-        super();
-    }
-
     effects() {
         return new Effects([], [Memory]);
     }
 
     toString() {
         return `${this.id} = Object {}`
+    }
+}
+
+class ArrayInst extends Inst {
+    effects() {
+        return new Effects([], [Memory]);
+    }
+
+    toString() {
+        return `${this.id} = Array []`
     }
 }
 
@@ -281,5 +287,5 @@ module.exports = {
     BinaryInst, UnaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
     CondJumpInst, JumpInst, RetInst, ReturnInst, CallInst,
     PhiInst, UpsilonInst, GetArgumentInst,
-    ObjectInst, GetPropInst, SetPropInst
+    ObjectInst, ArrayInst, GetPropInst, SetPropInst
 }

@@ -31,17 +31,11 @@ class IR {
             f.placePhis();
             f.rename();
                 for (let b of f.blocks) {
-                    let i = b.insts.at(-1);
-                    if (!(
-                        i instanceof RetInst ||
-                        i instanceof ReturnInst ||
-                        i instanceof JumpInst ||
-                        i instanceof CondJumpInst
-                    )) {
+                    if (!b.isTerminated()) {
                         if (f.name == '_entry') {
                             b.insts.push(new RetInst());
                         } else {
-                            let ud = new UndefinedConstInst()
+                            let ud = new UndefinedConstInst();
                             let ret = new ReturnInst(ud);
                             b.insts.push(ret);
                             console.log(`Added ${ret.id} that Return s ${ud.id}`)

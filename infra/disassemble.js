@@ -118,8 +118,11 @@ function disassemble(src, pool) {
             case OPCODES.NEW_OBJ:
                 log('NEW_OBJ');
                 break;
+            case OPCODES.NEW_ARR:
+                log('NEW_ARR');
+                break;
             default:
-                throw new Error(`I can't decompile a ${op}!`);
+                throw new Error(`I can't disassemble a ${op}!`);
         }
     }
 }
