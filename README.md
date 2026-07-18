@@ -30,7 +30,10 @@ virtual stack tracker to avoid using memory slots for things that are pushed ont
 slot). Register coloring coming soon, although since this is a toy it's only useful for obfuscation to clobber slots and make dynamic tracing harder.
 
 ## Todo
-1) Support more language features
+1) Support more language features. Next up:
+  	- Proper modeling of `Callables` so functions suck less
+  	- Add support + short-circuiting for `LogicalExpression`s
+  	- Little syntax sugars like `for (let ... of)`, `??`, and `?.`, maybe spread op if it ever becomes necessary
 2) Better pass infra, especially for compilation
 3) Register coloring
 4) Actually write obfuscating IR passes
@@ -47,7 +50,7 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 | variables | ✅ | what is a scope? also doesn't track const vs let vs var |
 | objects and arrays | ✅ | |
 | calling functions | ✅ | doesn't include async, anonymous, arrow, builtin, or `this`-referencing functions |
-| literally anything else - async generators, require, nullish coalescer, also stuff like `&&` and `\|\|` or console.log | ❌ | |
+| literally anything else - async generators, require, nullish coalescer, also LogicalExpressions like `&&` and `\|\|` or console.log | ❌ | |
 
 ## snippet
 ```javascript
