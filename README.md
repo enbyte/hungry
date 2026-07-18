@@ -39,15 +39,15 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 
 ## Language feature support
 
-| Feature | Is supported |
-|---------|--------------|
+| Feature | Is supported | footgun warning |
+|---------|--------------|-----------------|
 | literals | ✅          |
-| while, if/else if/else, for loops | ✅ |
-| binary, unary, and update operations | ✅ |
-| variables (no scoping) | ✅ |
-| objects and arrays | ✅ |
-| calling functions (not including async, anonymous, arrow, or builtin functions) | ✅ |
-| literally anything else | ❌ |
+| while, if/else if/else, for loops | ✅ | no support for `for (let ... of/in ...) yet |
+| binary, unary, and update operations | ✅ | ++ and -- don't distinguish prefix vs postfix and don't return their own values |
+| variables | ✅ | what is a scope? also doesn't track const vs let vs var |
+| objects and arrays | ✅ | |
+| calling functions | ✅ | doesn't include async, anonymous, arrow, builtin, or `this`-referencing functions |
+| literally anything else - async generators, require, nullish coalescer, also stuff like `&&` and `\|\|` or console.log | ❌ | |
 
 ## snippet
 ```javascript
@@ -62,10 +62,11 @@ function fib(n) {
 function fibSum(n) {
     let counter = 0;
     for (let i = 0; i < n; i++) {
-        counter = counter + fib(i);
+        counter += fib(i);
     }
     return counter;
 }
+
 fibSum(10) + 0;
 ```
 produces the IR
