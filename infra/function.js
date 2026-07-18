@@ -85,7 +85,17 @@ class IRFunction {
         } else if (t.isIdentifier(stmt)) {
             return new IdentifierRefInst(stmt.name);
         } else if (t.isAssignmentExpression(stmt)) {
-            init = this.lowerStatement(stmt.right);
+            if (stmt.operator == '=') {
+                init = this.lowerStatement(stmt.right);
+            } else {
+                let op = stmt.operator[0];
+                let right = this.lowerStatement(stmt.right)
+                let left = this.lowerStatement(stmt.left);
+                let bin = new BinaryInst(op, this.lowerStatement(stmt.left), right);
+                init = bin;
+                this.block.insts.push(left, right);
+            }
+            this.block.insts.push(init);
             if (t.isIdentifier(stmt.left)) {
                 inst = new AssignmentInst(stmt.left.name, init);
                 this.block.insts.push(inst);

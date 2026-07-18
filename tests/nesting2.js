@@ -67,10 +67,10 @@ while (x < 3) {
         z = 0;
         while (z < 3) {
             let sum = x + y;
-            sum = sum + z;
+            sum += z;
 
             if (sum == 3) {
-                checksum = checksum + 32;
+                checksum += 32;
             }
 
             z = z + 1;
@@ -81,15 +81,15 @@ while (x < 3) {
 }
 
 
-checksum = checksum + outer; 
-checksum = checksum + inner; 
-checksum = checksum + k; 
-checksum = checksum + x; 
-checksum = checksum + y; 
-checksum = checksum + z;
-checksum = checksum + step; 
+checksum += outer; 
+checksum += inner; 
+checksum += k; 
+checksum += x; 
+checksum += y; 
+checksum += z;
+checksum += step; 
 let expected_checksum = 358;
 if (checksum == expected_checksum) {
-    checksum = checksum + 75;
+    checksum += 75;
 }
 checksum + 0; // 433
