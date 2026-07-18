@@ -45,9 +45,8 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 | while, if/else if/else, for loops | ✅ |
 | binary, unary, and update operations | ✅ |
 | variables (no scoping) | ✅ |
-| objects | ✅ |
+| objects and arrays | ✅ |
 | calling functions (not including async, anonymous, arrow, or builtin functions) | ✅ |
-| arrays (this is trivial, coming soon) | ❌ |
 | literally anything else | ❌ |
 
 ## snippet
