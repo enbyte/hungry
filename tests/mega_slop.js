@@ -57,7 +57,7 @@ function fibIter(n) {
         let t = a + b;
         a = b;
         b = t;
-        i = i + 1;
+        i++;
     }
     return a;
 }
@@ -72,7 +72,7 @@ function rotate3(n) {
         c = b;
         b = a;
         a = t;
-        i = i + 1;
+        i++;
     }
     return a + b * 10 + c * 100;
 }
@@ -95,12 +95,12 @@ function nestedControl(n) {
             total = total + i;
         } else {
             if (i % 3 == 0) {
-                total = total - i;
+                total -= i;
             } else {
-                total = total + i * 2;
+                total += i * 2;
             }
         }
-        i = i + 1;
+        i++;
     }
     return total;
 }
@@ -115,17 +115,17 @@ let acc = 0;
 let n = 10;
 
 acc = fib(n); // fib n broken
-acc = acc + fibIter(n);
-acc = acc + rotate3(n);
-acc = acc + diamond(base);
-acc = acc + nestedControl(n);
-acc = acc + bitStuff(base, n);
-acc = acc + cmpChain(base, n, acc, 3);
-acc = acc + fusedMath(base, n, acc, 2);
-acc = acc + unfusedMath(base, n, acc, 2);
-acc = acc + callFusion(base, n, acc, 2);
-acc = acc + callNoFusion(base, n, acc, 2);
-acc = acc + manyArgs(1, 2, 3, 4, 5, 6);
+acc += fibIter(n);
+acc += rotate3(n);
+acc += diamond(base);
+acc += nestedControl(n);
+acc += bitStuff(base, n);
+acc += cmpChain(base, n, acc, 3);
+acc += fusedMath(base, n, acc, 2);
+acc += unfusedMath(base, n, acc, 2);
+acc += callFusion(base, n, acc, 2);
+acc += callNoFusion(base, n, acc, 2);
+acc += manyArgs(1, 2, 3, 4, 5, 6);
 
 acc + 0;
 

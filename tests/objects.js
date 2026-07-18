@@ -5,10 +5,10 @@ let o = {
 }
 let total = 0;
 let prop = "a";
-total = total + o[prop];
+total += o[prop];
 prop = "b";
-total = total + o[prop];
+total += o[prop];
 prop = "c";
-total = total + o[prop];
+total += o[prop];
 
 total + 0;

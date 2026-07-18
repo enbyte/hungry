@@ -9,7 +9,7 @@ function fib(n) {
 function fibSum(n) {
     let counter = 0;
     for (let i = 0; i < n; i++) {
-        counter = counter + fib(i);
+        counter += fib(i);
     }
     return counter;
 }

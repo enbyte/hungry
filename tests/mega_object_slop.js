@@ -23,7 +23,7 @@ while (cur != null) {
     } else {
         disc = raw;
     }
-    total = total + disc;
+    total += disc;
     cur = cur.next;
 }
 
@@ -36,7 +36,7 @@ function sumTo(n) {
 
 let prod = 1;
 for (let k = 1; k <= 4; k++) {
-    prod = prod * k;
+    prod *= k;
 }
 
 let probe = {a: 100, b: 200};

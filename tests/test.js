@@ -39,7 +39,8 @@ let tests = [
     [read('fib.js'), 88],
     [read('objects.js'), 6],
     [read('mega_object_slop.js'), 705],
-    [read('mega_slop.js'), 318419]
+    [read('mega_slop.js'), 318419],
+    [read('arr.js'), 7]
 ]
 
 runTestCases(tests);

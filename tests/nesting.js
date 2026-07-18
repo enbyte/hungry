@@ -8,26 +8,26 @@ while (outer < 3) {
     let inner = 0;
     while (inner < 4) {
         if (inner == 2) {
-            c = c + 1;
+            c += 1;
         }
         if (a < b) {
-            total = total + a;
+            total += a;
         }
         if (b < a) {
-            total = total + b;
+            total += b;
         }
-        a = a + 1;
-        b = b + 1;
-        inner = inner + 1;
+        a++;
+        b++;
+        inner += 1;
     }
 
     if (outer == 1) {
         while (c < 10) {
-            c = c + 3;
+            c += 3;
         }
     }
 
-    outer = outer + 1;
+    outer++;
 }
 
 let x = 1;

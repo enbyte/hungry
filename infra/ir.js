@@ -38,7 +38,7 @@ class IR {
                             let ud = new UndefinedConstInst();
                             let ret = new ReturnInst(ud);
                             b.insts.push(ret);
-                            console.log(`Added ${ret.id} that Return s ${ud.id}`)
+                            // console.log(`Added ${ret.id} that Return s ${ud.id}`)
                         }
                     }
                 }
