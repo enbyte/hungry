@@ -42,7 +42,7 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 
 ## Language feature support
 
-| Feature | Is supported | footgun warning |
+| Feature | Is supported | warning about how it secretly doesn't work |
 |---------|--------------|-----------------|
 | literals | ✅          |
 | while, if/else if/else, for loops | ✅ | no support for `for (let ... of/in ...) yet |
