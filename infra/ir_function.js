@@ -86,7 +86,6 @@ class IRFunction {
         } else if (t.isVariableDeclarator(stmt)) {
             init = stmt.init ? this.lowerStatement(stmt.init) : new UndefinedConstInst();
             inst = new AssignmentInst(stmt.id.name, init);
-            console.log('init is an', init.toString());
             this.block.insts.push(inst);
             return inst;
         } else if (t.isIdentifier(stmt)) {
@@ -451,10 +450,12 @@ class IRFunction {
             }
         }
 
+        this.freeRefs = new Map();
         this.renameBlock(this.entry);
 
         for (let b of this.blocks) {
-            b.insts = b.insts.filter(inst => !(inst instanceof AssignmentInst) && !(inst instanceof IdentifierRefInst));
+            let refs = this.freeRefs.get(b) || [];
+            b.insts = [...refs, ...b.insts.filter(inst => !(inst instanceof AssignmentInst) && !(inst instanceof IdentifierRefInst))];
         }
     }
 
@@ -471,7 +472,15 @@ class IRFunction {
                 for (let j = 0; j < i.operands.length; j++) {
                     let op = i.operands[j];
                     if (op instanceof IdentifierRefInst) {
-                        i.operands[j] = this.stack.get(op.name).at(-1);
+                        let stack = this.stack.get(op.name);
+                        if (stack) {
+                            i.operands[j] = stack.at(-1);
+                        } else {
+                            let ref = new CallableRefInst(op.name); // dumb as fuck but it works
+                            if (!this.freeRefs.has(b)) this.freeRefs.set(b, []);
+                            this.freeRefs.get(b).push(ref);
+                            i.operands[j] = ref;
+                        }
                     }
                 }
                 if (i instanceof AssignmentInst) {

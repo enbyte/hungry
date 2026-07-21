@@ -33,7 +33,8 @@ let OPCODES = {
     NEW_OBJ: 0x1F,
     GET_PROP: 0x20,
     SET_PROP: 0x21,
-    NEW_ARR: 0x22
+    NEW_ARR: 0x22,
+    CALL_INDIRECT: 0x23
 }
 
 function execute(src, const_pool, args=[], pc=0) {
@@ -145,15 +146,26 @@ function execute(src, const_pool, args=[], pc=0) {
             case OPCODES.GET_ARG:
                 push(args[src[pc++]]);
                 break;
-            case OPCODES.CALL:
+            case OPCODES.CALL: {
                 let target = src[pc++];
                 let arity = src[pc++];
-                let cArgs = [];
+                let args = [];
                 while (arity--) {
-                    cArgs.unshift(pop());
+                    args.unshift(pop());
                 }
-                push(execute(src, const_pool, cArgs, target))
+                push(execute(src, const_pool, args, target))
                 break;
+            }
+            case OPCODES.CALL_INDIRECT: {
+                let arity = src[pc++];
+                let target; let args = [];
+                while (arity--) {
+                    args.unshift(pop());
+                }
+                target = pop();
+                push(execute(src, const_pool, args, target));
+                break;
+            }
             case OPCODES.RETURN:
                 return pop();
             case OPCODES.POP: // popcode

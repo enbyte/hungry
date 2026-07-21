@@ -20,15 +20,31 @@ let transformNonAnonFnDecls = {
                 path.node.async
             )
         )]));
+        path.get('declarations.0.init').node.__evil_ass_annotation_name = name;
+    }
+}
 
-        path.node.__evil_ass_annotation_name = name;
+let transformArrowFns = {
+    ArrowFunctionExpression(path) {
+        let body = t.isBlockStatement(path.node.body)
+            ? path.node.body
+            : t.blockStatement([t.returnStatement(path.node.body)]);
+        path.replaceWith(
+            t.functionExpression(
+                null,
+                path.node.params,
+                body,
+                path.node.generator,
+                path.node.async
+            )
+        )
     }
 }
 
 let extractFnDeclsVisitor = {
     FunctionExpression: {
         exit(path, state) {
-            let id = `__hoisted_$${IR.fnId++}_${path.node.__evil_ass_annotation_name ? path.node.__evil_ass_annotation_name : 'anonymous'}`
+            let id = `${path.node.__evil_ass_annotation_name ? path.node.__evil_ass_annotation_name : `anonymous$${IR.fnId++}`}`
             state.hoisted.set(id, path.node);
             path.replaceWith(t.stringLiteral(`__NOT_A_STRING_FN_LITERAL_REF-${id}`));
             path.node.__evil_ass_i_am_a_secret_function_annotation = true;
@@ -49,6 +65,7 @@ class IR {
         const hoisted = new Map();
 
         traverse(this.raw, transformNonAnonFnDecls);
+        traverse(this.raw, transformArrowFns);
         traverse(this.raw, extractFnDeclsVisitor, null, { hoisted });
 
 

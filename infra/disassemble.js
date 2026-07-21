@@ -121,6 +121,9 @@ function disassemble(src, pool) {
             case OPCODES.NEW_ARR:
                 log('NEW_ARR');
                 break;
+            case OPCODES.CALL_INDIRECT:
+                log(`CALL_INDIRECT arity=${src[idx++]}`);
+                break;
             default:
                 throw new Error(`I can't disassemble a ${op}!`);
         }
