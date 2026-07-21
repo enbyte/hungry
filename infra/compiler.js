@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst, CallableRefInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst, CallableRefInst, BuiltinRefInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -39,6 +39,9 @@ function calculateSlots(ir) {
                     vStack.push(i.id);
                     break;
                 case i instanceof CallableRefInst:
+                    vStack.push(i.id);
+                    break;
+                case i instanceof BuiltinRefInst:
                     vStack.push(i.id);
                     break;
                 case i instanceof GetArgumentInst:
@@ -361,6 +364,16 @@ function compile(ir, passes) {
                         case i instanceof CallableRefInst: {
                             bytecode.push(OPCODES.LOAD_CONST);
                             let idx = createConstant(i.target, pool);
+                            bytecode.push(idx);
+                            if (i.slot !== null) {
+                                bytecode.push(OPCODES.STORE, i.slot);
+                            }
+                            break;
+                        }
+                        case i instanceof BuiltinRefInst: {
+                            bytecode.push(OPCODES.LOAD_CONST); // FIXME: This isn't a constant, but a fn ref.
+                                                               // Works, but is super janky, and cooks any later constant encryption pass.
+                            let idx = createConstant(i.fn, pool);
                             bytecode.push(idx);
                             if (i.slot !== null) {
                                 bytecode.push(OPCODES.STORE, i.slot);

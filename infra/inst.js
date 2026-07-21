@@ -1,5 +1,36 @@
 const { Effects, World, SSAState, Memory, Control, IO, Pure } = require('./effects.js');
 
+const pureBuiltins = new Set([
+    // Math
+    Math.abs, Math.acos, Math.acosh, Math.asin, Math.asinh,
+    Math.atan, Math.atanh, Math.atan2, Math.cbrt, Math.ceil,
+    Math.clz32, Math.cos, Math.cosh, Math.exp, Math.expm1,
+    Math.floor, Math.fround, Math.hypot, Math.imul, Math.log,
+    Math.log10, Math.log1p, Math.log2, Math.max, Math.min,
+    Math.pow, Math.round, Math.sign, Math.sin, Math.sinh,
+    Math.sqrt, Math.tan, Math.tanh, Math.trunc,
+
+    Number.isFinite, Number.isInteger, Number.isNaN, Number.isSafeInteger,
+    Number.parseFloat, Number.parseInt,
+    
+    parseInt, parseFloat, isFinite, isNaN, decodeURI, decodeURIComponent,
+    encodeURI, encodeURIComponent,
+]);
+
+const ioBuiltins = new Set([
+    console.log, console.warn, console.error, console.info, console.debug,
+]);
+
+function builtinCallEffects(fn) {
+    if (ioBuiltins.has(fn)) {
+        return new Effects([], [IO]);
+    }
+    if (pureBuiltins.has(fn)) {
+        return Pure;
+    }
+    return new Effects([World], [World]);
+}
+
 class Inst {
     static id = 0;
 
@@ -206,6 +237,9 @@ class CallInst extends Inst {
     set target(x) { this.operands[0] = x }
 
     effects() {
+        if (this.target instanceof BuiltinRefInst) {
+            return builtinCallEffects(this.target.fn);
+        }
         return new Effects([World], [World]);
     }
 
@@ -222,6 +256,17 @@ class CallableRefInst extends Inst {
 
     toString() {
         return `${this.id} = CallableRef -> ${this.target}`
+    }
+}
+
+class BuiltinRefInst extends Inst {
+    constructor(fn) {
+        super();
+        this.fn = fn;
+    }
+
+    toString() {
+        return `${this.id} = BuiltinRef(${this.fn.name || `anon builtin, code: ${this.fn.toString()}`})`
     }
 }
 
@@ -304,7 +349,7 @@ module.exports = {
 
     CondJumpInst, JumpInst, RetInst, ReturnInst,
 
-    CallInst, GetArgumentInst, CallableRefInst,
+    CallInst, GetArgumentInst, CallableRefInst, BuiltinRefInst,
 
     PhiInst, UpsilonInst,
 

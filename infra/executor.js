@@ -163,7 +163,11 @@ function execute(src, const_pool, args=[], pc=0) {
                     args.unshift(pop());
                 }
                 target = pop();
-                push(execute(src, const_pool, args, target));
+                if (typeof target === 'function') {
+                    push(target(...args));
+                } else {
+                    push(execute(src, const_pool, args, target));
+                }
                 break;
             }
             case OPCODES.RETURN:

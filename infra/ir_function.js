@@ -1,6 +1,6 @@
 const { Block } = require("./block.js");
 const t = require("@babel/types");
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, CallInst, UnaryInst, GetArgumentInst, ReturnInst, RetInst, ObjectInst, SetPropInst, GetPropInst, ArrayInst, CallableRefInst } = require("./inst.js");
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, CallInst, UnaryInst, GetArgumentInst, ReturnInst, RetInst, ObjectInst, SetPropInst, GetPropInst, ArrayInst, CallableRefInst, BuiltinRefInst } = require("./inst.js");
 
 function reversePostOrder(entry) {
     let visited = new Set();
@@ -27,6 +27,19 @@ function reversePostOrder(entry) {
         po_index[po[i]] = i;
     }
     return [po, po_index];
+}
+
+function resolveGlobal(expr) {
+    if (t.isIdentifier(expr)) {
+        return expr.name in globalThis ? globalThis[expr.name] : null;
+    }
+    if (t.isMemberExpression(expr) && !expr.computed) {
+        let obj = resolveGlobal(expr.object);
+        if (obj && typeof obj == 'object' && expr.property.name in obj) {
+            return obj[expr.property.name];
+        }
+    }
+    return null;
 }
 
 class IRFunction {
@@ -122,6 +135,13 @@ class IRFunction {
             return inst;
         } else if (t.isCallExpression(stmt)) {
             let args = stmt.arguments.map(a => this.lowerStatement(a));
+            let builtin = resolveGlobal(stmt.callee);
+            if (builtin) {
+                let ref = new BuiltinRefInst(builtin);
+                inst = new CallInst(ref, args);
+                this.block.insts.push(ref, inst);
+                return inst;
+            }
             let target = this.lowerStatement(stmt.callee);
             inst = new CallInst(target, args);
             this.block.insts.push(inst);
@@ -475,8 +495,13 @@ class IRFunction {
                         let stack = this.stack.get(op.name);
                         if (stack) {
                             i.operands[j] = stack.at(-1);
+                        } else if (op.name in globalThis) {
+                            let ref = new BuiltinRefInst(globalThis[op.name]);
+                            if (!this.freeRefs.has(b)) this.freeRefs.set(b, []);
+                            this.freeRefs.get(b).push(ref);
+                            i.operands[j] = ref;
                         } else {
-                            let ref = new CallableRefInst(op.name); // dumb as fuck but it works
+                            let ref = new CallableRefInst(op.name);
                             if (!this.freeRefs.has(b)) this.freeRefs.set(b, []);
                             this.freeRefs.get(b).push(ref);
                             i.operands[j] = ref;
