@@ -188,10 +188,11 @@ class GetArgumentInst extends Inst {
 }
 
 class CallInst extends Inst {
-    constructor(name, args) {
+    constructor(target, args) {
         super();
-        this.name = name;
-        this.operands = [...args];
+        this.operands = [target, ...args];
+
+        this.target = target;
 
         this.calleeEntry = null;
 
@@ -199,15 +200,28 @@ class CallInst extends Inst {
         
     }
 
-    get args() { return this.operands }
-    set args(x) { this.operands = x }
+    get args() { return this.operands.slice(1) }
+    set args(x) { this.operands = [this.operands[0], ...x] }
+    get target() { return this.operands[0] }
+    set target(x) { this.operands[0] = x }
 
     effects() {
         return new Effects([World], [World]);
     }
 
     toString() {
-        return `${this.id} = Call ${this.name}(${this.args.map(a => a.id).join(', ')})`
+        return `${this.id} = Call ${this.target.id}(${this.args.map(a => a.id).join(', ')})`
+    }
+}
+
+class CallableRefInst extends Inst {
+    constructor(target) {
+        super();
+        this.target = target;
+    }
+
+    toString() {
+        return `${this.id} = CallableRef -> ${this.target}`
     }
 }
 
@@ -284,8 +298,15 @@ class SetPropInst extends Inst {
 }
 
 module.exports = {
-    BinaryInst, UnaryInst, ConstInst, AssignmentInst, IdentifierRefInst, UndefinedConstInst,
-    CondJumpInst, JumpInst, RetInst, ReturnInst, CallInst,
-    PhiInst, UpsilonInst, GetArgumentInst,
+    BinaryInst, UnaryInst, ConstInst, UndefinedConstInst,
+    
+    AssignmentInst, IdentifierRefInst,
+
+    CondJumpInst, JumpInst, RetInst, ReturnInst,
+
+    CallInst, GetArgumentInst, CallableRefInst,
+
+    PhiInst, UpsilonInst,
+
     ObjectInst, ArrayInst, GetPropInst, SetPropInst
 }

@@ -1,6 +1,6 @@
-const { Block } = require("./block");
+const { Block } = require("./block.js");
 const t = require("@babel/types");
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, CallInst, UnaryInst, GetArgumentInst, ReturnInst, RetInst, ObjectInst, SetPropInst, GetPropInst, ArrayInst } = require("./inst.js");
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, UndefinedConstInst, CallInst, UnaryInst, GetArgumentInst, ReturnInst, RetInst, ObjectInst, SetPropInst, GetPropInst, ArrayInst, CallableRefInst } = require("./inst.js");
 
 function reversePostOrder(entry) {
     let visited = new Set();
@@ -74,12 +74,19 @@ class IRFunction {
             this.block.insts.push(inst);
             return inst;
         } else if (t.isLiteral(stmt)) {
-            inst = new ConstInst(stmt.value);
-            this.block.insts.push(inst);
-            return inst;
+            if (stmt.__evil_ass_i_am_a_secret_function_annotation) {
+                inst = new CallableRefInst(stmt.value.split('-')[1]);
+                this.block.insts.push(inst);
+                return inst;
+            } else {
+                inst = new ConstInst(stmt.value);
+                this.block.insts.push(inst);
+                return inst;
+            }
         } else if (t.isVariableDeclarator(stmt)) {
             init = stmt.init ? this.lowerStatement(stmt.init) : new UndefinedConstInst();
             inst = new AssignmentInst(stmt.id.name, init);
+            console.log('init is an', init.toString());
             this.block.insts.push(inst);
             return inst;
         } else if (t.isIdentifier(stmt)) {
@@ -87,15 +94,17 @@ class IRFunction {
         } else if (t.isAssignmentExpression(stmt)) {
             if (stmt.operator == '=') {
                 init = this.lowerStatement(stmt.right);
+                // don't push if right is iden, will be captured by rename
             } else {
                 let op = stmt.operator[0];
                 let right = this.lowerStatement(stmt.right)
                 let left = this.lowerStatement(stmt.left);
                 let bin = new BinaryInst(op, this.lowerStatement(stmt.left), right);
                 init = bin;
-                this.block.insts.push(left, right);
+                this.block.insts.push(right);
+                this.block.insts.push(init);
+
             }
-            this.block.insts.push(init);
             if (t.isIdentifier(stmt.left)) {
                 inst = new AssignmentInst(stmt.left.name, init);
                 this.block.insts.push(inst);
@@ -114,7 +123,8 @@ class IRFunction {
             return inst;
         } else if (t.isCallExpression(stmt)) {
             let args = stmt.arguments.map(a => this.lowerStatement(a));
-            inst = new CallInst(stmt.callee.name, args)
+            let target = this.lowerStatement(stmt.callee);
+            inst = new CallInst(target, args);
             this.block.insts.push(inst);
             return inst;
         } else if (t.isReturnStatement(stmt)) {
@@ -444,7 +454,7 @@ class IRFunction {
         this.renameBlock(this.entry);
 
         for (let b of this.blocks) {
-            b.insts = b.insts.filter(inst => !(inst instanceof AssignmentInst));
+            b.insts = b.insts.filter(inst => !(inst instanceof AssignmentInst) && !(inst instanceof IdentifierRefInst));
         }
     }
 
