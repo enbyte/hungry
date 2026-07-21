@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst, CallableRefInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -38,10 +38,24 @@ function calculateSlots(ir) {
                 case i instanceof ConstInst:
                     vStack.push(i.id);
                     break;
+                case i instanceof CallableRefInst:
+                    vStack.push(i.id);
+                    break;
                 case i instanceof GetArgumentInst:
                     vStack.push(i.id);
                     break;
                 case i instanceof CallInst:
+                    if (vStack.at(-i.args.length - 1) == i.target.id) {
+                        assignNull(i.target);
+                        vStack.splice(-i.args.length - 1, 1);
+                    } else {
+                        assignSlot(i.target)
+                        for (let j = 0; j < i.args.length; j++) {
+                            assignSlot(i.args[j])
+                        }
+                        vStack.push(i.id);
+                        break;
+                    }
                     if (vStack.slice(-i.args.length).every((val, idx) => i.args.map(a => a.id)[idx] == val)) {
                         for (let j = 0; j < i.args.length; j++) {
                             vStack.pop();
@@ -243,16 +257,21 @@ function eliminateDeadOps(f) {
     }
 }
 
+function createConstant(c, pool) {
+    if (pool.indexOf(c) !== -1) {
+        return pool.indexOf(c);
+    } else {
+        pool.push(c);
+        return pool.length - 1;
+    }
+}
+
 function compile(ir, passes) {
     let bytecode = [];
     let pool = [];
 
-    let fnByName = new Map();
-    for (let f of ir.functions) {
-        fnByName.set(f.name, f);
-    }
-
     let blockLocs = {};
+    let fnLocs = {};
 
     for (let f of ir.functions) {
         eliminateDeadOps(f);
@@ -264,11 +283,10 @@ function compile(ir, passes) {
                 if (i instanceof AssignmentInst) {
                     defSites.add(i.target);
                 }
-                if (i instanceof CallInst) {
-                    i.calleeEntry = fnByName.get(i.name).entry;
-                }
             }
         }
+
+        fnLocs[f.name] = bytecode.length;
 
         let maxSlot = -1;
         for (let b of f.blocks) {
@@ -331,19 +349,24 @@ function compile(ir, passes) {
                     }
                 } else {
                     switch (true) {
-                        case i instanceof ConstInst:
-                            if (pool.includes(i.val)) {
-                                bytecode.push(OPCODES.LOAD_CONST);
-                                bytecode.push(pool.indexOf(i.val));
-                            } else {
-                                bytecode.push(OPCODES.LOAD_CONST);
-                                bytecode.push(pool.length);
-                                pool.push(i.val);
-                            }
+                        case i instanceof ConstInst: {
+                            bytecode.push(OPCODES.LOAD_CONST);
+                            let idx = createConstant(i.val, pool);
+                            bytecode.push(idx);
                             if (i.slot !== null) {
                                 bytecode.push(OPCODES.STORE, i.slot);
                             }
                             break;
+                        }
+                        case i instanceof CallableRefInst: {
+                            bytecode.push(OPCODES.LOAD_CONST);
+                            let idx = createConstant(i.target, pool);
+                            bytecode.push(idx);
+                            if (i.slot !== null) {
+                                bytecode.push(OPCODES.STORE, i.slot);
+                            }
+                            break;
+                        }
                         case i instanceof PhiInst:
                             break;
                         case i instanceof BinaryInst:
@@ -381,14 +404,16 @@ function compile(ir, passes) {
                                 bytecode.push(OPCODES.STORE, i.slot);
                             }
                             break;
-                        case i instanceof CallInst:
+                        case i instanceof CallInst: {
+                            if (i.target.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.target.slot);
+                            }
                             for (let arg of i.args) {
                                 if (arg.slot !== null) {
                                     bytecode.push(OPCODES.LOAD, arg.slot);
                                 }
                             }
-                            bytecode.push(OPCODES.CALL);
-                            bytecode.push(i.calleeEntry.id);
+                            bytecode.push(OPCODES.CALL_INDIRECT);
                             bytecode.push(i.args.length);
                             if (i.slot !== null) {
                                 bytecode.push(OPCODES.STORE, i.slot);
@@ -398,6 +423,7 @@ function compile(ir, passes) {
                                 }
                             }
                             break;
+                        }
                         case i instanceof ReturnInst:
                             if (i.val.slot !== null) {
                                 bytecode.push(OPCODES.LOAD, i.val.slot);
@@ -455,6 +481,12 @@ function compile(ir, passes) {
     for (let i = 0; i < bytecode.length; i++) {
         if (Object.keys(blockLocs).includes(bytecode[i])) {
             bytecode[i] = blockLocs[bytecode[i]]
+        }
+    }
+
+    for (let c of pool) {
+        if (Object.keys(fnLocs).includes(c)) {
+            pool[pool.indexOf(c)] = fnLocs[c];
         }
     }
 
