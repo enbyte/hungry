@@ -15,7 +15,8 @@ function test(src, expectedLastStack, irPasses = [], compilerPasses = []) {
 }
 
 function runTestCases(testArr) {
-    counter = 0;
+    let counter = 0;
+    let failures = 0;
     
     for (let i of testArr) {
         let code = i[0]; let res = i[1];
@@ -27,7 +28,14 @@ function runTestCases(testArr) {
         } else {
             console.log(`\t[-] Test case ${counter++} failed :(`);
             console.log(`\t[-] Expected value: ${res}, instead got ${t[1]}`);
+            failures++;
         }
+    }
+
+    if (failures == 0) {
+        console.log('✅😍😇❤️😁😎🤩\x1b[1;92m All tests passed!\x1b[0m');
+    } else {
+        console.log(`❌😥👿💔☹️🤓😵\x1b[1;91m ${failures} test(s) failed :((`);
     }
 }
 
@@ -37,10 +45,10 @@ let tests = [
     [read('control_flow.js'), 484],
     [read('factorial.js'), 120],
     [read('fib.js'), 88],
-    [read('objects.js'), 6],
+    [read('builtin.js'), 67], // this should print hello tooter grumple poomp
     [read('mega_object_slop.js'), 705],
     [read('mega_slop.js'), 318419],
-    [read('arr.js'), 7]
+    [read('ultimate_slop.js'), 4575]
 ]
 
 runTestCases(tests);

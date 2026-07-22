@@ -9,6 +9,7 @@ function print(obj) {
     if (2 + 2 == 4) { 
         f("Hello there,", obj.name);
     }
+    return 67/3
 }
 
 let myObjs = [
@@ -20,3 +21,5 @@ let myObjs = [
 for (let i = 0; i < myObjs.length; i++) {
     printObj(print, myObjs[i]);
 }
+
+67 + 0;

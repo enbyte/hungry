@@ -71,7 +71,7 @@ class IR {
 
         this.ast = this.raw.program.body;
 
-        console.log(generate(this.raw.program).code);
+        // console.log(generate(this.raw.program).code);
 
 
         this.entry = new IRFunction('_entry', this.ast, []);
@@ -82,7 +82,7 @@ class IR {
             this.functions.push(new IRFunction(name, node.body.body, node.params));
         }
 
-        console.log(`There are ${this.functions.length} functions to lower`)
+        // console.log(`There are ${this.functions.length} functions to lower`)
 
         for (let f of this.functions) {
             f.computeDominance();
