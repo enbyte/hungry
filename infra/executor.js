@@ -158,11 +158,11 @@ function execute(src, const_pool, args=[], pc=0) {
             }
             case OPCODES.CALL_INDIRECT: {
                 let arity = src[pc++];
-                let target; let args = [];
+                let target = pop();
+                let args = [];
                 while (arity--) {
                     args.unshift(pop());
                 }
-                target = pop();
                 if (typeof target === 'function') {
                     push(target(...args));
                 } else {

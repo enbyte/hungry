@@ -6,7 +6,9 @@ function printObj(fn, obj) {
 
 function print(obj) {
     let f = console.log;
-    f("Hello there,", obj.name);
+    if (2 + 2 == 4) { 
+        f("Hello there,", obj.name);
+    }
 }
 
 let myObjs = [
