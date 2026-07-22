@@ -48,9 +48,9 @@ function calculateSlots(ir) {
                     vStack.push(i.id);
                     break;
                 case i instanceof CallInst:
-                    if (vStack.at(-i.args.length - 1) == i.target.id) {
+                    if (vStack.at(-1) == i.target.id) {
                         assignNull(i.target);
-                        vStack.splice(-i.args.length - 1, 1);
+                        vStack.splice(-1, 1);
                     } else {
                         assignSlot(i.target)
                         for (let j = 0; j < i.args.length; j++) {
@@ -418,13 +418,13 @@ function compile(ir, passes) {
                             }
                             break;
                         case i instanceof CallInst: {
-                            if (i.target.slot !== null) {
-                                bytecode.push(OPCODES.LOAD, i.target.slot);
-                            }
                             for (let arg of i.args) {
                                 if (arg.slot !== null) {
                                     bytecode.push(OPCODES.LOAD, arg.slot);
                                 }
+                            }
+                            if (i.target.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.target.slot);
                             }
                             bytecode.push(OPCODES.CALL_INDIRECT);
                             bytecode.push(i.args.length);

@@ -23,7 +23,7 @@ function disassemble(src, pool) {
                 break;
             case OPCODES.LOAD_CONST:
                 let i = src[idx++]
-                log(`LOAD_CONST idx=${i} (val=${pool[i]})`);
+                log(`LOAD_CONST idx=${i} val=${typeof pool[i] == 'function' ? (pool[i].name || 'anonymous') : pool[i]} isLiteral=${!(typeof pool[i] == 'function')}`);
                 break;
             case OPCODES.LT:
                 log('LT');
