@@ -23,7 +23,7 @@ function _entry():
 ```
 The lowerer splits the provided script into functions and then coalesces the remaining non-function statements into a pseudo function called "_entry". Each function is effectively its own sub-IR with its own CFG. The only special-cased insts that can jump between these IRs are `Call` and `Return`, whereas `Jump` and `CondJump` just flow between different blocks in a function. Each function splits its CFG into blocks, where every block is terminated by `Return`, `Jump`, or `CondJump`. `_entry` always ends with `Return`. When lowering, each function traverses the AST to build its little CFG, creating blocks as necessary when control flow appears. When finished, it does (i)dom calculations for each block, and then places phis corresponding to the iterated dominance frontier of each block's variable assignments. Then, it rewrites each assignment to be Upsilon-stores to the calculated phi. 
 
-Objects are handled using an `ObjectInst` that just creates a blank `{}`, which future `SetProp` and `GetProp` insts can reference. To track side effects of object reads/writes, the compiler uses abstract heaps (`World`, `Memory`, `SSAState`, probably `IO` if I add console.log, etc) that can track interference between instructions to support good DCE/LICM (useless)/shuffling things around for obfuscation. This is the primary advantage that this project has of being much closer to the original JSLIR form that was part of JSIR before they removed it - it throws away all of the information that tethers it to the source which allows for more powerful non-source transforms. In essence, this project aims to be JSIR targeted at obfuscation instead of deobfuscation, sacrificing source-to-source but solving the issue JSIR has with symbols violating true SSA and making constant propagation janky. 
+Objects are handled using an `ObjectInst` that just creates a blank `{}`, which future `SetProp` and `GetProp` insts can reference. To track side effects of object reads/writes, the compiler uses abstract heaps (`World`, `Memory`, `SSAState`, `IO`, etc) that can track interference between instructions to support good DCE/LICM (useless)/shuffling things around for obfuscation. This is the primary advantage that this project has of being much closer to the original JSLIR form that was part of JSIR before they removed it - it throws away all of the information that tethers it to the source which allows for more powerful non-source transforms. In essence, this project aims to be JSIR targeted at obfuscation instead of deobfuscation, sacrificing source-to-source but solving the issue JSIR has with symbols violating true SSA and making constant propagation janky. 
 
 Due to the upsilons, compilation is tremendously easy, with the compiler basically just being a loop that emits the correct opcode for each `Inst` in each block, with a
 virtual stack tracker to avoid using memory slots for things that are pushed onto the stack and immediately consumed (SSA values not immediately used get a tracked memory
@@ -31,9 +31,10 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 
 ## Todo
 1) Support more language features. Next up:
-  	- Proper modeling of `Callables` so functions suck less
+  	- ~~Proper modeling of `Callables` so functions suck less~~
   	- Add support + short-circuiting for `LogicalExpression`s
-  	- Little syntax sugars like `for (let ... of)`, `??`, and `?.`, maybe spread op if it ever becomes necessary
+   	- Add proper `CALL_BUILTIN` op so that constant pool encryption can actually work
+  	- Little syntax sugars like `for ... of`, `??`, and `?.`, maybe spread op if it ever becomes necessary
 2) Better pass infra, especially for compilation
 3) Register coloring
 4) Actually write obfuscating IR passes
@@ -45,12 +46,18 @@ slot). Register coloring coming soon, although since this is a toy it's only use
 | Feature | Is supported | warning about how it secretly doesn't work |
 |---------|--------------|-----------------|
 | literals | ✅          |
-| while, if/else if/else, for loops | ✅ | no support for `for (let ... of/in ...) yet |
+| while loops, if/else if/else, for loops | ✅ | no support for `for ... of` yet |
 | binary, unary, and update operations | ✅ | ++ and -- don't distinguish prefix vs postfix and don't return their own values |
-| variables | ✅ | what is a scope? also doesn't track const vs let vs var |
+| variables | ✅ | variables are scoped to functions only and assignments don't return their value in-place |
 | objects and arrays | ✅ | |
-| calling functions | ✅ | doesn't include async, anonymous, arrow, builtin, or `this`-referencing functions |
-| literally anything else - async generators, require, nullish coalescer, also LogicalExpressions like `&&` and `\|\|` or console.log | ❌ | |
+| functions that aren't secret classes | ✅ | default and variadic arguments aren't supported. for variadic arguments, pass as an array for functionally equivalent behavior |
+| classes, including builtin ones (`new Uint8Array()`) | ❌ |
+| async/await and generators | ❌ | |
+| literally anything else | ❌ | `import/require`, weird edge cases like shadowing or patching globals don't work |
+
+### fundamental limitations
+1) Non-builtin functions are compiled and aren't objects. Thus, `this`-referencing functions won't work, as well as stuff like `.toString()` (since the functions have been compiled and don't really have "bodies" anymore).
+2) Any calls to `eval` beyond those that are the most simple imaginable (those that reference or modify program state) will break, for obvious reasons.
 
 ## snippet
 ```javascript
@@ -74,64 +81,70 @@ fibSum(10) + 0;
 ```
 produces the IR
 ```
- function _entry():
+function _entry():
 	b-0:
-	  %0 = Const<number>(10);
-	  %1 = Call fibSum(%0)
-	  %2 = Const<number>(0);
-	  %3 = +(%1, %2);
-	  %45 = Return
+	  %0 = CallableRef -> fib
+	  %2 = CallableRef -> fibSum
+	  %4 = Const<number>(10);
+	  %6 = Call %2(%4)
+	  %7 = Const<number>(0);
+	  %8 = +(%6, %7);
+	  %54 = Return
 
 function fib():
 	b-1:
-	  %4 = GetArgument(#0, ^n)
-	  %6 = Const<number>(2);
-	  %7 = <(%4, %6);
-	  %8 = JumpIf %7 -> b-2 else b-4
+	  %9 = GetArgument(#0, ^n)
+	  %11 = Const<number>(2);
+	  %12 = <(%9, %11);
+	  %13 = JumpIf %12 -> b-2 else b-4
 	b-2:
-	  %10 = Return %4
+	  %15 = Return %9
 	b-3:
-	  %48 = Return %47
+	  %59 = Return %58
 	b-4:
-	  %12 = Const<number>(1);
-	  %13 = -(%4, %12);
-	  %14 = Call fib(%13)
-	  %16 = Const<number>(2);
-	  %17 = -(%4, %16);
-	  %18 = Call fib(%17)
-	  %19 = +(%14, %18);
-	  %20 = Return %19
+	  %56 = CallableRef -> fib
+	  %57 = CallableRef -> fib
+	  %17 = Const<number>(1);
+	  %18 = -(%9, %17);
+	  %20 = Call %56(%18)
+	  %22 = Const<number>(2);
+	  %23 = -(%9, %22);
+	  %25 = Call %57(%23)
+	  %26 = +(%20, %25);
+	  %27 = Return %26
 
 function fibSum():
 	b-5:
-	  %21 = GetArgument(#0, ^n)
-	  %22 = Const<number>(0);
-	  %24 = Const<number>(0);
-	  %52 = Upsilon(%24, ^%50);
-	  %53 = Upsilon(%22, ^%49);
-	  %26 = Jump -> b-6
+	  %28 = GetArgument(#0, ^n)
+	  %29 = Const<number>(0);
+	  %31 = Const<number>(0);
+	  %63 = Upsilon(%31, ^%61);
+	  %64 = Upsilon(%29, ^%60);
+	  %33 = Jump -> b-6
 	b-6:
-	  %50 = Phi(^i);
-	  %49 = Phi(^counter);
-	  %29 = <(%50, %21);
-	  %30 = JumpIf %29 -> b-7 else b-9
+	  %61 = Phi(^i);
+	  %60 = Phi(^counter);
+	  %36 = <(%61, %28);
+	  %37 = JumpIf %36 -> b-7 else b-9
 	b-7:
-	  %33 = Call fib(%50)
-	  %34 = +(%49, %33);
-	  %36 = Jump -> b-8
+	  %65 = CallableRef -> fib
+	  %40 = Call %65(%61)
+	  %40 = Call %65(%61)
+	  %43 = +(%60, %40);
+	  %45 = Jump -> b-8
 	b-8:
-	  %38 = Const<number>(1);
-	  %39 = +(%50, %38);
-	  %54 = Upsilon(%39, ^%50);
-	  %55 = Upsilon(%34, ^%49);
-	  %41 = Jump -> b-6
+	  %47 = Const<number>(1);
+	  %48 = +(%61, %47);
+	  %66 = Upsilon(%48, ^%61);
+	  %67 = Upsilon(%43, ^%60);
+	  %50 = Jump -> b-6
 	b-9:
-	  %43 = Return %49
+	  %52 = Return %60
   ```
-The variable name references inside the Phi are vestigial but useful to keep for debugging. The phi/upsilon model basically gets rid of any headaches with SSA relating to phis, especially for what is just a virtualizing compiler that targets its own language, since no quirks of javascript really have to be emulated. The mystery `%47` that doesn't exist that's returned by `b-3` of `fib` is just a created `UndefinedConstInst` that wasn't added to the inst list. This block is obviously never reached, as every path through that function ends in a return statement that isn't the end of the function. 
+The variable name references inside the Phi are vestigial but useful to keep for debugging. The phi/upsilon model basically gets rid of any headaches with SSA relating to phis, especially for what is just a virtualizing compiler that targets its own language, since no quirks of javascript really have to be emulated. The mystery `%58` that doesn't exist that's returned by `b-3` of `fib` is just a created `UndefinedConstInst` that wasn't added to the inst list. This block is obviously never reached, as every path through that function ends in a return statement that isn't the end of the function. Functions aren't directly referenced by name but instead by Insts (see `%56` and `%57`), which can then be used as normal SSA values before ultimately pushing the necessary bytecode location or builtin onto the stack. 
 
 ## testing
-Tests can be run with `node tests/test.js`. Most tests are either random examples of things that broke the lowerer/compiler previously, or slop resulting from a prompt roughly equivalent to "here are all the ops I support, generate the most comprehensive test that tests all of them interacting," with the expected value being the result of pasting into browser console. To lower, compile, disassemble, and execute a file of your choice, `node run.js <file>`. Since there aren't any builtins yet, the <x> + 0 pattern is specifically not removed by the dead code eliminator so you can obtain a value and then push it onto the stack at the end of your program to see what the output is. `console.log` coming soon, I promise!
+Tests can be run with `node tests/test.js`. Most tests are either random examples of things that broke the lowerer/compiler previously, or slop resulting from a prompt roughly equivalent to "here are all the ops I support, generate the most comprehensive test that tests all of them interacting," with the expected value being the result of pasting into browser console. To lower, compile, disassemble, and execute a file of your choice, `node run.js <file>`. The <x> + 0 pattern is specifically not removed by the dead code eliminator so you can obtain a value and then push it onto the stack at the end of your program (which is easier to check in tests than hooking `console.log`).
 
 ## conclusion
 Those who have suffered all the way through this document to the end will be pleased to learn that the earlier cliffhanger of my hunger was resolved after naming the repo
