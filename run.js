@@ -13,7 +13,7 @@ const ir = new IR(src, [
     // IR passes go here
 ]);
 
-console.log("Produced ir is:\n", ir.toString());
+console.log("Produced ir is:\n" + ir.toString());
 
 let [bc, pool] = compile(ir, [
     // Compiler passes go here
