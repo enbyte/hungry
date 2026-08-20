@@ -230,6 +230,20 @@ function getUnaryOpcode(op) {
 }
 
 function eliminateDeadOps(f) {
+    let lastRealInst = null;
+    if (f.name === '_entry') {
+        for (let b of f.blocks) {
+            let hasReturn = b.insts.some(i => i instanceof RetInst || i instanceof ReturnInst);
+            if (!hasReturn) continue;
+            for (let inst of b.insts) {
+                if (!(inst instanceof RetInst || inst instanceof ReturnInst ||
+                      inst instanceof PhiInst || inst instanceof UpsilonInst ||
+                      inst instanceof JumpInst || inst instanceof CondJumpInst)) {
+                    lastRealInst = inst;
+                }
+            }
+        }
+    }
     for (let b of f.blocks) {
         for (let i of [...b.insts]) {
             let consumed = false;
@@ -247,14 +261,28 @@ function eliminateDeadOps(f) {
                 }
             }
             let isEndStack = (i instanceof BinaryInst && i.op == '+' && i.right instanceof ConstInst && i.right.val == 0);
+            let isLastReal = f.name === '_entry' && i === lastRealInst && lastRealInst !== null;
             let hasWrites = i.effects().writes.length > 0;
 
-            if (!consumed && !hasWrites && !isEndStack) {
+            if (!consumed && !hasWrites && !isEndStack && !isLastReal) {
                 let idx = b.insts.indexOf(i);
                 b.insts.splice(idx, 1);
             }
             if (i instanceof CallInst) {
-                i.needsPop = !consumed;
+                if (!consumed && f.name === '_entry') {
+                    let insts = b.insts;
+                    let idx = insts.indexOf(i);
+                    if (idx >= 0) {
+                        let after = insts.slice(idx + 1).filter(r =>
+                            !(r instanceof RetInst || r instanceof ReturnInst ||
+                              r instanceof PhiInst || r instanceof UpsilonInst));
+                        i.needsPop = after.length > 0;
+                    } else {
+                        i.needsPop = true;
+                    }
+                } else {
+                    i.needsPop = !consumed;
+                }
             }
         }
     }

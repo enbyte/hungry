@@ -38,162 +38,174 @@ let OPCODES = {
 }
 
 function execute(src, const_pool, args=[], pc=0) {
-    let stack = [];
-    let slots = [];
-    let push = (x) => stack.push(x);
-    let pop = () => stack.pop();
+    let execStack = [{ pc, slots: [], stack: [], args }];
     let r, l, obj, prop, val;
-    while (pc < src.length) {
-        let op = src[pc++];
+
+    while (execStack.length > 0) {
+        let f = execStack[execStack.length - 1];
+        if (f.pc >= src.length) {
+            execStack.pop();
+            if (execStack.length === 0) return f.stack;
+            continue;
+        }
+
+        let op = src[f.pc++];
         switch (op) {
             case OPCODES.ADD:
-                push(pop() + pop());
+                f.stack.push(f.stack.pop() + f.stack.pop());
                 break;
             case OPCODES.SUB:
-                [r, l] = [pop(), pop()];
-                push(l - r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l - r);
                 break;
             case OPCODES.MUL:
-                push(pop() * pop());
+                f.stack.push(f.stack.pop() * f.stack.pop());
                 break;
             case OPCODES.DIV:
-                [r, l] = [pop(), pop()];
-                push(l / r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l / r);
                 break;
             case OPCODES.SHR:
-                [r, l] = [pop(), pop()];
-                push(l << r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l << r);
                 break;
             case OPCODES.SHL:
-                [r, l] = [pop(), pop()];
-                push(l >> r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l >> r);
                 break;
             case OPCODES.MOD:
-                [r, l] = [pop(), pop()];
-                push(l % r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l % r);
                 break;
             case OPCODES.GT:
-                [r, l] = [pop(), pop()];
-                push(l > r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l > r);
                 break;
             case OPCODES.LTE:
-                [r, l] = [pop(), pop()];
-                push(l <= r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l <= r);
                 break;
             case OPCODES.GTE:
-                [r, l] = [pop(), pop()];
-                push(l >= r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l >= r);
                 break;
             case OPCODES.NEQUALS:
-                push(pop() != pop());
+                f.stack.push(f.stack.pop() != f.stack.pop());
                 break;
             case OPCODES.BAND:
-                [r, l] = [pop(), pop()];
-                push(l & r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l & r);
                 break;
             case OPCODES.XOR:
-                [r, l] = [pop(), pop()];
-                push(l ^ r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l ^ r);
                 break;
             case OPCODES.BOR:
-                [r, l] = [pop(), pop()];
-                push(l | r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l | r);
                 break;
             case OPCODES.AND:
-                [r, l] = [pop(), pop()];
-                push(l && r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l && r);
                 break;
             case OPCODES.OR:
-                [r, l] = [pop(), pop()];
-                push(l || r);
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l || r);
                 break;
             case OPCODES.NCONV:
-                push(+pop());
+                f.stack.push(+f.stack.pop());
                 break;
             case OPCODES.NEG:
-                push(-pop());
+                f.stack.push(-f.stack.pop());
                 break;
             case OPCODES.BNOT:
-                push(~pop());
+                f.stack.push(~f.stack.pop());
                 break;
             case OPCODES.RET:
-                return stack;
+                execStack.pop();
+                if (execStack.length === 0) return f.stack;
+                break;
             case OPCODES.LOAD_CONST:
-                push(const_pool[src[pc++]]);
+                f.stack.push(const_pool[src[f.pc++]]);
                 break;
             case OPCODES.JUMP:
-                pc = src[pc];
+                f.pc = src[f.pc];
                 break;
-            case OPCODES.JUMP_IF:
-                let cond = pop();
-                let thenTarget = src[pc];
-                let elseTarget = src[pc + 1];
-                pc = cond ? thenTarget : elseTarget;
+            case OPCODES.JUMP_IF: {
+                let cond = f.stack.pop();
+                let thenTarget = src[f.pc];
+                let elseTarget = src[f.pc + 1];
+                f.pc = cond ? thenTarget : elseTarget;
                 break;
+            }
             case OPCODES.EQUALS:
-                push(pop() == pop());
+                f.stack.push(f.stack.pop() == f.stack.pop());
                 break;
             case OPCODES.STORE:
-                slots[src[pc++]] = pop();
+                f.slots[src[f.pc++]] = f.stack.pop();
                 break;
             case OPCODES.LOAD:
-                push(slots[src[pc++]]);
+                f.stack.push(f.slots[src[f.pc++]]);
                 break;
             case OPCODES.LT:
-                [r, l] = [pop(), pop()] // some nonsense
-                push(l < r); // future me it's 1:14 am be grateful I didn't set > for .LT and go to sleep
+                r = f.stack.pop(); l = f.stack.pop();
+                f.stack.push(l < r);
                 break;
             case OPCODES.GET_ARG:
-                push(args[src[pc++]]);
+                f.stack.push(f.args[src[f.pc++]]);
                 break;
             case OPCODES.CALL: {
-                let target = src[pc++];
-                let arity = src[pc++];
-                let args = [];
-                while (arity--) {
-                    args.unshift(pop());
-                }
-                push(execute(src, const_pool, args, target))
+                let target = src[f.pc++];
+                let arity = src[f.pc++];
+                let callArgs = [];
+                while (arity--) callArgs.unshift(f.stack.pop());
+                execStack.push({ pc: target, slots: [], stack: [], args: callArgs });
                 break;
             }
             case OPCODES.CALL_INDIRECT: {
-                let arity = src[pc++];
-                let target = pop();
-                let args = [];
-                while (arity--) {
-                    args.unshift(pop());
-                }
+                let arity = src[f.pc++];
+                let target = f.stack.pop();
+                let callArgs = [];
+                while (arity--) callArgs.unshift(f.stack.pop());
                 if (typeof target === 'function') {
-                    push(target(...args));
+                    f.stack.push(target(...callArgs));
                 } else {
-                    push(execute(src, const_pool, args, target));
+                    execStack.push({ pc: target, slots: [], stack: [], args: callArgs });
                 }
                 break;
             }
-            case OPCODES.RETURN:
-                return pop();
-            case OPCODES.POP: // popcode
-                pop();
+            case OPCODES.RETURN: {
+                let retval = f.stack.pop();
+                execStack.pop();
+                if (execStack.length > 0) {
+                    execStack[execStack.length - 1].stack.push(retval);
+                } else {
+                    return retval;
+                }
+                break;
+            }
+            case OPCODES.POP:
+                f.stack.pop();
                 break;
             case OPCODES.NEW_OBJ:
-                push({});
+                f.stack.push({});
                 break;
             case OPCODES.NEW_ARR:
-                push([]);
+                f.stack.push([]);
                 break;
             case OPCODES.GET_PROP:
-                [prop, obj] = [pop(), pop()];
-                push(obj[prop]);
+                prop = f.stack.pop(); obj = f.stack.pop();
+                f.stack.push(obj[prop]);
                 break;
             case OPCODES.SET_PROP:
-                [val, prop, obj] = [pop(), pop(), pop()];
+                val = f.stack.pop(); prop = f.stack.pop(); obj = f.stack.pop();
                 obj[prop] = val;
                 break;
             default:
-                throw new Error(`Unknown opcode ${op} at pc=${pc - 1}`);
+                throw new Error(`Unknown opcode ${op} at pc=${f.pc - 1}`);
         }
     }
-    return stack;
+    return [];
 }
 
 module.exports = { OPCODES, execute };

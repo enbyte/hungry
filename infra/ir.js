@@ -102,7 +102,10 @@ class IR {
         }
 
         for (let pass of passes) {
-            pass.transform(this.ir)
+            pass.transform(this);
+            for (let f of this.functions) {
+                f.computeDominance();
+            }
         }
     }
 

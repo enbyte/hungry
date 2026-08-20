@@ -6,11 +6,14 @@ const { execute } = require('./infra/executor.js');
 const { disassemble } = require('./infra/disassemble.js');
 const { argv } = require('process');
 
+const { MicrosplitPass } = require("./passes/microsplit.js");
+
 const FILE = argv[2];
 const src = readFileSync(FILE, {encoding: 'utf8'});
 
 const ir = new IR(src, [
     // IR passes go here
+    new MicrosplitPass()
 ]);
 
 console.log("Produced ir is:\n" + ir.toString());

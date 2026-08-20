@@ -57,6 +57,8 @@ class IRFunction {
             this.block.insts.push(new GetArgumentInst(i, args[i].name));
         }
 
+        this.dirty = false;
+
         this.lower(ast);
     }
 
@@ -531,6 +533,24 @@ class IRFunction {
             stack.length = mark[vari];
         }
 
+    }
+
+    cleanDirty() {
+        this.dirty = false;
+        this.computeDominance();
+        this.placePhis();
+        this.rename();
+        for (let b of this.blocks) {
+            if (!b.isTerminated()) {
+                if (this.name == '_entry') {
+                    b.insts.push(new RetInst());
+                } else {
+                    let ud = new UndefinedConstInst();
+                    let ret = new ReturnInst(ud);
+                    b.insts.push(ret);
+                }
+            }
+        }
     }
 
     toString() {

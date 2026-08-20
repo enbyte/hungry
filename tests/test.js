@@ -5,6 +5,8 @@ const { execute } = require('../infra/executor.js');
 const { join } = require('path');
 const { readFileSync } = require('fs');
 
+const { MicrosplitPass } = require("../passes/microsplit.js");
+
 let read = (p) => readFileSync(join(__dirname, p)).toString();
 
 function test(src, expectedLastStack, irPasses = [], compilerPasses = []) {
@@ -21,7 +23,13 @@ function runTestCases(testArr) {
     for (let i of testArr) {
         let code = i[0]; let res = i[1];
         console.log(`Testing case ${counter} (${code.slice(0, 50).replaceAll(/[\n\s]+/g, ' ')}${code.length > 50 ? '...' : ''})`);
-        let t = test(code, res);
+        let t;
+        try {
+            t = test(code, res, [new MicrosplitPass()]);
+        } catch (e) {
+            console.log(`\x1b[1;31m${e} in when testing test case ${testArr.indexOf(i)}, expecting ${res}!!\x1b[0m`);
+            t = [false, '\x1b[1;31m<An error occurred while running this test case>\x1b[0m'] // is formatting escapes in the error code tuff chat
+        }
         if (t[0]) {
             console.log(`\t[+] Test ${counter++} passed!`);
             console.log(`\t[+] Expected value ${res}, got ${t[1]}`)
@@ -35,7 +43,7 @@ function runTestCases(testArr) {
     if (failures == 0) {
         console.log('✅😍😇❤️😁😎🤩\x1b[1;92m All tests passed!\x1b[0m');
     } else {
-        console.log(`❌😥👿💔☹️🤓😵\x1b[1;91m ${failures} test(s) failed :((`);
+        console.log(`❌😥👿💔☹️🤓😵\x1b[1;91m ${failures} test(s) failed :((\x1b[0m`);
     }
 }
 
