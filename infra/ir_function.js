@@ -404,7 +404,7 @@ class IRFunction {
             if (block.predecessors.length >= 2) {
                 for (let pred of block.predecessors) {
                     runner = pred;
-                    while (runner != block.idom) {
+                    while (runner && runner != block.idom) {
                         if (frontiers.has(runner)) {
                             frontiers.get(runner).push(block);
                         } else {

@@ -6,6 +6,7 @@ const { join } = require('path');
 const { readFileSync } = require('fs');
 
 const { MicrosplitPass } = require("../passes/microsplit.js");
+const { ControlFlowFlattenPass } = require("../passes/flatten.js");
 
 let read = (p) => readFileSync(join(__dirname, p)).toString();
 
@@ -25,7 +26,7 @@ function runTestCases(testArr) {
         console.log(`Testing case ${counter} (${code.slice(0, 50).replaceAll(/[\n\s]+/g, ' ')}${code.length > 50 ? '...' : ''})`);
         let t;
         try {
-            t = test(code, res, [new MicrosplitPass()]);
+            t = test(code, res, [new ControlFlowFlattenPass()]);
         } catch (e) {
             console.log(`\x1b[1;31m${e} in when testing test case ${testArr.indexOf(i)}, expecting ${res}!!\x1b[0m`);
             t = [false, '\x1b[1;31m<An error occurred while running this test case>\x1b[0m'] // is formatting escapes in the error code tuff chat

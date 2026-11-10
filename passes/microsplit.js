@@ -5,7 +5,7 @@ class MicrosplitPass {
     constructor(config = {}) {
         this.config = { 
             minBlockSize: 2,
-            maxBlockSize: 8,
+            maxBlockSize: 6,
             ...config
         }
     }

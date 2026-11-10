@@ -26,6 +26,7 @@ let OPCODES = {
     NCONV: 0x18,
     NEG: 0x19,
     BNOT: 0x1A,
+    NOT: 0x25,
     GET_ARG: 0x1B,
     CALL: 0x1C,
     RETURN: 0x1D,
@@ -34,7 +35,8 @@ let OPCODES = {
     GET_PROP: 0x20,
     SET_PROP: 0x21,
     NEW_ARR: 0x22,
-    CALL_INDIRECT: 0x23
+    CALL_INDIRECT: 0x23,
+    JUMP_MAYBE: 0x24
 }
 
 function execute(src, const_pool, args=[], pc=0) {
@@ -112,6 +114,9 @@ function execute(src, const_pool, args=[], pc=0) {
                 r = f.stack.pop(); l = f.stack.pop();
                 f.stack.push(l || r);
                 break;
+            case OPCODES.NOT:
+                f.stack.push(!f.stack.pop());
+                break;
             case OPCODES.NCONV:
                 f.stack.push(+f.stack.pop());
                 break;
@@ -136,6 +141,12 @@ function execute(src, const_pool, args=[], pc=0) {
                 let thenTarget = src[f.pc];
                 let elseTarget = src[f.pc + 1];
                 f.pc = cond ? thenTarget : elseTarget;
+                break;
+            }
+            case OPCODES.JUMP_MAYBE: {
+                let cond = f.stack.pop();
+                let target = src[f.pc];
+                f.pc = cond ? target : f.pc + 1;
                 break;
             }
             case OPCODES.EQUALS:

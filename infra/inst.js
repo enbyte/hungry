@@ -152,6 +152,25 @@ class JumpInst extends Inst {
     }
 }
 
+class MaybeJumpInst extends Inst {
+    constructor(cond, target) {
+        super();
+        this.target = target;
+        this.operands = [cond];
+    }
+
+    get cond() { return this.operands[0] }
+
+    effects() {
+        return new Effects([], [Control]);
+    }
+
+    toString() {
+        return `${this.id} = JumpIf ${this.cond.id} -> ${this.target.id} else continue`
+    }
+}
+
+
 class PhiInst extends Inst {
     constructor(vari) {
         super();
@@ -347,7 +366,7 @@ module.exports = {
     
     AssignmentInst, IdentifierRefInst,
 
-    CondJumpInst, JumpInst, RetInst, ReturnInst,
+    CondJumpInst, JumpInst, RetInst, ReturnInst, MaybeJumpInst,
 
     CallInst, GetArgumentInst, CallableRefInst, BuiltinRefInst,
 

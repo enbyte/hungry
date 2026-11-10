@@ -1,5 +1,5 @@
 let { OPCODES } = require('./executor.js');
-const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst, CallableRefInst, BuiltinRefInst } = require("./inst.js")
+const { BinaryInst, ConstInst, AssignmentInst, IdentifierRefInst, CondJumpInst, JumpInst, PhiInst, UpsilonInst, RetInst, UnaryInst, GetArgumentInst, CallInst, ReturnInst, ObjectInst, GetPropInst, SetPropInst, ArrayInst, CallableRefInst, BuiltinRefInst, MaybeJumpInst } = require("./inst.js")
 
 function calculateSlots(ir) {
     let slot = 0;
@@ -122,6 +122,14 @@ function calculateSlots(ir) {
                         vStack.pop();
                     }
                     break;
+                case i instanceof MaybeJumpInst:
+                    if (!(vStack.at(-1) == i.cond.id)) {
+                        assignSlot(i.cond);
+                    } else {
+                        assignSlot(i.cond, true)
+                        vStack.pop();
+                    }
+                    break;
                 case i instanceof JumpInst:
                     break;
                 case i instanceof RetInst:
@@ -224,6 +232,8 @@ function getUnaryOpcode(op) {
             return OPCODES.NEG;
         case '~':
             return OPCODES.BNOT;
+        case '!':
+            return OPCODES.NOT;
         default:
             throw new Error(`I can't getUnaryOpcode of a ${op}!`)
     }
@@ -430,6 +440,12 @@ function compile(ir, passes) {
                             bytecode.push(OPCODES.JUMP_IF);
                             bytecode.push(i.target.id);
                             bytecode.push(i.alternate.id);
+                            break;
+                        case i instanceof MaybeJumpInst:
+                            if (i.cond.slot !== null) {
+                                bytecode.push(OPCODES.LOAD, i.cond.slot); }
+                            bytecode.push(OPCODES.JUMP_MAYBE);
+                            bytecode.push(i.target.id);
                             break;
                         case i instanceof JumpInst:
                             bytecode.push(OPCODES.JUMP);

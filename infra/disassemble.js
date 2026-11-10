@@ -31,11 +31,17 @@ function disassemble(src, pool) {
             case OPCODES.GT:
                 log('GT');
                 break;
+            case OPCODES.NOT:
+                log('NOT');
+                break;
             case OPCODES.JUMP:
                 log(`JMP ${src[idx++]}`);
                 break;
             case OPCODES.JUMP_IF:
                 log(`CJMP ${src[idx++]} else ${src[idx++]}`);
+                break;
+            case OPCODES.JUMP_MAYBE:
+                log(`CJMP ${src[idx++]} else continue`);
                 break;
             case OPCODES.LOAD:
                 log(`LOAD ${src[idx++]}`);

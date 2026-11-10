@@ -7,13 +7,15 @@ const { disassemble } = require('./infra/disassemble.js');
 const { argv } = require('process');
 
 const { MicrosplitPass } = require("./passes/microsplit.js");
+const { ControlFlowFlattenPass } = require("./passes/flatten.js");
 
 const FILE = argv[2];
 const src = readFileSync(FILE, {encoding: 'utf8'});
 
 const ir = new IR(src, [
     // IR passes go here
-    new MicrosplitPass()
+    new MicrosplitPass(),
+    new ControlFlowFlattenPass(),
 ]);
 
 console.log("Produced ir is:\n" + ir.toString());
